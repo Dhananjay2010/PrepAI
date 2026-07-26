@@ -51,6 +51,7 @@ JSON format:
 }`;
 
   let responseText = "";
+  const start = Date.now();
 
   try {
     const response = await ai.models.generateContent({
@@ -64,19 +65,50 @@ JSON format:
       config: { temperature: 0.7, responseMimeType: "application/json" }
     });
     responseText = response.text || "";
+    console.log(
+      JSON.stringify({
+        event: "gemini_call",
+        function: "generateQuestions",
+        model: "gemini-flash-latest",
+        latency_ms: Date.now() - start,
+        status: "success",
+      })
+    );
   } catch (err: any) {
     console.warn("gemini-flash-latest failed, trying gemini-2.0-flash:", err?.message || err);
-    const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash",
-      contents: [
-        {
-          role: "user",
-          parts: [{ text: `${systemPrompt}\n\n<job_description>\n${jobDescription}\n</job_description>` }]
-        }
-      ],
-      config: { temperature: 0.7, responseMimeType: "application/json" }
-    });
-    responseText = response.text || "";
+    try {
+      const response = await ai.models.generateContent({
+        model: "gemini-2.0-flash",
+        contents: [
+          {
+            role: "user",
+            parts: [{ text: `${systemPrompt}\n\n<job_description>\n${jobDescription}\n</job_description>` }]
+          }
+        ],
+        config: { temperature: 0.7, responseMimeType: "application/json" }
+      });
+      responseText = response.text || "";
+      console.log(
+        JSON.stringify({
+          event: "gemini_call",
+          function: "generateQuestions",
+          model: "gemini-2.0-flash",
+          latency_ms: Date.now() - start,
+          status: "success",
+        })
+      );
+    } catch (fallbackErr: any) {
+      console.error(
+        JSON.stringify({
+          event: "gemini_call",
+          function: "generateQuestions",
+          latency_ms: Date.now() - start,
+          status: "error",
+          error: fallbackErr?.message || fallbackErr,
+        })
+      );
+      throw fallbackErr;
+    }
   }
 
   if (!responseText) {
@@ -114,6 +146,7 @@ Respond in JSON:
 }`;
 
   let responseText = "";
+  const start = Date.now();
 
   try {
     const response = await ai.models.generateContent({
@@ -122,14 +155,45 @@ Respond in JSON:
       config: { temperature: 0.7, responseMimeType: "application/json" }
     });
     responseText = response.text || "";
+    console.log(
+      JSON.stringify({
+        event: "gemini_call",
+        function: "mockInterviewTurn",
+        model: "gemini-flash-latest",
+        latency_ms: Date.now() - start,
+        status: "success",
+      })
+    );
   } catch (err: any) {
     console.warn("gemini-flash-latest mock turn failed, trying gemini-2.0-flash:", err?.message || err);
-    const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash",
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      config: { temperature: 0.7, responseMimeType: "application/json" }
-    });
-    responseText = response.text || "";
+    try {
+      const response = await ai.models.generateContent({
+        model: "gemini-2.0-flash",
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        config: { temperature: 0.7, responseMimeType: "application/json" }
+      });
+      responseText = response.text || "";
+      console.log(
+        JSON.stringify({
+          event: "gemini_call",
+          function: "mockInterviewTurn",
+          model: "gemini-2.0-flash",
+          latency_ms: Date.now() - start,
+          status: "success",
+        })
+      );
+    } catch (fallbackErr: any) {
+      console.error(
+        JSON.stringify({
+          event: "gemini_call",
+          function: "mockInterviewTurn",
+          latency_ms: Date.now() - start,
+          status: "error",
+          error: fallbackErr?.message || fallbackErr,
+        })
+      );
+      throw fallbackErr;
+    }
   }
 
   if (!responseText) {
@@ -170,6 +234,7 @@ Respond in JSON:
 }`;
 
   let responseText = "";
+  const start = Date.now();
 
   try {
     const response = await ai.models.generateContent({
@@ -178,14 +243,45 @@ Respond in JSON:
       config: { temperature: 0.6, responseMimeType: "application/json" }
     });
     responseText = response.text || "";
+    console.log(
+      JSON.stringify({
+        event: "gemini_call",
+        function: "generatePreciseAnswer",
+        model: "gemini-flash-latest",
+        latency_ms: Date.now() - start,
+        status: "success",
+      })
+    );
   } catch (err: any) {
     console.warn("gemini-flash-latest precise answer failed, trying gemini-2.0-flash:", err?.message || err);
-    const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash",
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      config: { temperature: 0.6, responseMimeType: "application/json" }
-    });
-    responseText = response.text || "";
+    try {
+      const response = await ai.models.generateContent({
+        model: "gemini-2.0-flash",
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        config: { temperature: 0.6, responseMimeType: "application/json" }
+      });
+      responseText = response.text || "";
+      console.log(
+        JSON.stringify({
+          event: "gemini_call",
+          function: "generatePreciseAnswer",
+          model: "gemini-2.0-flash",
+          latency_ms: Date.now() - start,
+          status: "success",
+        })
+      );
+    } catch (fallbackErr: any) {
+      console.error(
+        JSON.stringify({
+          event: "gemini_call",
+          function: "generatePreciseAnswer",
+          latency_ms: Date.now() - start,
+          status: "error",
+          error: fallbackErr?.message || fallbackErr,
+        })
+      );
+      throw fallbackErr;
+    }
   }
 
   if (!responseText) {
@@ -230,6 +326,7 @@ JSON format:
 }`;
 
   let responseText = "";
+  const start = Date.now();
 
   try {
     const response = await ai.models.generateContent({
@@ -243,19 +340,50 @@ JSON format:
       config: { temperature: 0.7, responseMimeType: "application/json" }
     });
     responseText = response.text || "";
+    console.log(
+      JSON.stringify({
+        event: "gemini_call",
+        function: "generateMoreQuestions",
+        model: "gemini-flash-latest",
+        latency_ms: Date.now() - start,
+        status: "success",
+      })
+    );
   } catch (err: any) {
     console.warn("gemini-flash-latest more questions failed, trying gemini-2.0-flash:", err?.message || err);
-    const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash",
-      contents: [
-        {
-          role: "user",
-          parts: [{ text: `${systemPrompt}\n\n<job_description>\n${jobDescription}\n</job_description>` }]
-        }
-      ],
-      config: { temperature: 0.7, responseMimeType: "application/json" }
-    });
-    responseText = response.text || "";
+    try {
+      const response = await ai.models.generateContent({
+        model: "gemini-2.0-flash",
+        contents: [
+          {
+            role: "user",
+            parts: [{ text: `${systemPrompt}\n\n<job_description>\n${jobDescription}\n</job_description>` }]
+          }
+        ],
+        config: { temperature: 0.7, responseMimeType: "application/json" }
+      });
+      responseText = response.text || "";
+      console.log(
+        JSON.stringify({
+          event: "gemini_call",
+          function: "generateMoreQuestions",
+          model: "gemini-2.0-flash",
+          latency_ms: Date.now() - start,
+          status: "success",
+        })
+      );
+    } catch (fallbackErr: any) {
+      console.error(
+        JSON.stringify({
+          event: "gemini_call",
+          function: "generateMoreQuestions",
+          latency_ms: Date.now() - start,
+          status: "error",
+          error: fallbackErr?.message || fallbackErr,
+        })
+      );
+      throw fallbackErr;
+    }
   }
 
   if (!responseText) {
