@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { PaywallModal } from "@/components/PaywallModal";
+import { SkeletonPreciseAnswer } from "@/components/Skeletons";
 
 export interface QuestionData {
   num: number;
@@ -142,6 +144,7 @@ export function QuestionCard({
 
     try {
       setLoadingPrecise(true);
+      setExpanded(true); // Auto expand drawer to show skeleton while loading
       setErrorMsg(null);
 
       const res = await fetch("/api/precise-answer", {
@@ -169,7 +172,6 @@ export function QuestionCard({
       }
 
       setPreciseAnswer(data.preciseAnswer);
-      setExpanded(true); // Auto expand answer drawer
     } catch (err: any) {
       console.error("Precise answer fetch error:", err);
       setErrorMsg(err.message || "Failed to fetch precise answer");
@@ -179,7 +181,12 @@ export function QuestionCard({
   }
 
   return (
-    <div className="bg-paper-raised rounded-xl p-6 border border-slate/10 shadow-[0_4px_24px_-8px_rgba(28,34,48,0.12)] space-y-4 hover:border-slate/30 transition-all">
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25, ease: "easeOut" }}
+      className="bg-paper-raised rounded-xl p-6 border border-slate/10 shadow-[0_4px_24px_-8px_rgba(28,34,48,0.12)] space-y-4 hover:border-slate/30 transition-all"
+    >
       {/* Top Header Row */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-3">
@@ -254,86 +261,97 @@ export function QuestionCard({
       )}
 
       {/* Expandable Details Drawer */}
-      {expanded && (
-        <div className="mt-4 space-y-4 font-body text-xs text-slate bg-paper p-5 rounded-xl border border-slate/10 animate-in fade-in duration-150">
-          {/* Gemini Precise Model Answer Section */}
-          {preciseAnswer && (
-            <div className="bg-paper-raised p-4 rounded-lg border border-mint/30 space-y-3 shadow-xs">
-              <div className="flex items-center justify-between border-b border-mint/20 pb-2">
-                <span className="font-mono text-xs font-bold text-mint uppercase tracking-wider flex items-center space-x-1">
-                  <span>✨</span>
-                  <span>Gemini Precise Model Answer (Saved)</span>
-                </span>
-                <span className="font-mono text-[10px] text-slate uppercase bg-mint/10 text-mint px-2 py-0.5 rounded">
-                  Spoken Ready
-                </span>
-              </div>
+      <AnimatePresence>
+        {expanded && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="mt-4 space-y-4 font-body text-xs text-slate bg-paper p-5 rounded-xl border border-slate/10 overflow-hidden"
+          >
+            {/* Loading Precise Answer Skeleton */}
+            {loadingPrecise && <SkeletonPreciseAnswer />}
 
-              <div>
-                <p className="font-mono text-[11px] font-semibold text-slate uppercase mb-1">
-                  Executive Summary
-                </p>
-                <p className="text-ink font-medium leading-relaxed">
-                  "{preciseAnswer.summary_statement}"
-                </p>
-              </div>
+            {/* Gemini Precise Model Answer Section */}
+            {preciseAnswer && !loadingPrecise && (
+              <div className="bg-paper-raised p-4 rounded-lg border border-mint/30 space-y-3 shadow-xs">
+                <div className="flex items-center justify-between border-b border-mint/20 pb-2">
+                  <span className="font-mono text-xs font-bold text-mint uppercase tracking-wider flex items-center space-x-1">
+                    <span>✨</span>
+                    <span>Gemini Precise Model Answer (Saved)</span>
+                  </span>
+                  <span className="font-mono text-[10px] text-slate uppercase bg-mint/10 text-mint px-2 py-0.5 rounded">
+                    Spoken Ready
+                  </span>
+                </div>
 
-              {preciseAnswer.key_bullets && preciseAnswer.key_bullets.length > 0 && (
                 <div>
                   <p className="font-mono text-[11px] font-semibold text-slate uppercase mb-1">
-                    Key Talking Points
+                    Executive Summary
                   </p>
-                  <ul className="list-disc pl-4 space-y-1 text-ink/90">
-                    {preciseAnswer.key_bullets.map((bullet, idx) => (
-                      <li key={idx}>{bullet}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {preciseAnswer.sample_spoken_answer && (
-                <div>
-                  <p className="font-mono text-[11px] font-semibold text-focus uppercase mb-1">
-                    Sample Verbal Response (Interview Ready)
-                  </p>
-                  <p className="text-ink/90 italic bg-paper p-3 rounded border border-slate/10 leading-relaxed">
-                    "{preciseAnswer.sample_spoken_answer}"
+                  <p className="text-ink font-medium leading-relaxed">
+                    "{preciseAnswer.summary_statement}"
                   </p>
                 </div>
-              )}
-            </div>
-          )}
 
-          <div>
-            <p className="font-mono font-semibold uppercase text-ink text-[11px] mb-1">
-              What They Are Testing
-            </p>
-            <p className="text-slate">{question.what_they_test}</p>
-          </div>
+                {preciseAnswer.key_bullets && preciseAnswer.key_bullets.length > 0 && (
+                  <div>
+                    <p className="font-mono text-[11px] font-semibold text-slate uppercase mb-1">
+                      Key Talking Points
+                    </p>
+                    <ul className="list-disc pl-4 space-y-1 text-ink/90">
+                      {preciseAnswer.key_bullets.map((bullet, idx) => (
+                        <li key={idx}>{bullet}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
 
-          <div>
-            <p className="font-mono font-semibold uppercase text-mint text-[11px] mb-1">
-              Strong Answer Outline
-            </p>
-            <p className="text-ink leading-relaxed">{question.strong_answer_outline}</p>
-          </div>
+                {preciseAnswer.sample_spoken_answer && (
+                  <div>
+                    <p className="font-mono text-[11px] font-semibold text-focus uppercase mb-1">
+                      Sample Verbal Response (Interview Ready)
+                    </p>
+                    <p className="text-ink/90 italic bg-paper p-3 rounded border border-slate/10 leading-relaxed">
+                      "{preciseAnswer.sample_spoken_answer}"
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
 
-          {question.red_flags && (
             <div>
-              <p className="font-mono font-semibold uppercase text-coral text-[11px] mb-1">
-                Red Flags To Avoid
+              <p className="font-mono font-semibold uppercase text-ink text-[11px] mb-1">
+                What They Are Testing
               </p>
-              <p className="text-coral/90">{question.red_flags}</p>
+              <p className="text-slate">{question.what_they_test}</p>
             </div>
-          )}
-        </div>
-      )}
+
+            <div>
+              <p className="font-mono font-semibold uppercase text-mint text-[11px] mb-1">
+                Strong Answer Outline
+              </p>
+              <p className="text-ink leading-relaxed">{question.strong_answer_outline}</p>
+            </div>
+
+            {question.red_flags && (
+              <div>
+                <p className="font-mono font-semibold uppercase text-coral text-[11px] mb-1">
+                  Red Flags To Avoid
+                </p>
+                <p className="text-coral/90">{question.red_flags}</p>
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <PaywallModal
         isOpen={paywallOpen}
         onClose={() => setPaywallOpen(false)}
         userId={userId}
       />
-    </div>
+    </motion.div>
   );
 }

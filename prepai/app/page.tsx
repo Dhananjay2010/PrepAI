@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 import { JDInput } from "@/components/JDInput";
 import { QuestionCard, QuestionData } from "@/components/QuestionCard";
@@ -10,10 +10,12 @@ import { UserNav } from "@/components/UserNav";
 import { PaywallModal } from "@/components/PaywallModal";
 import { MockInterviewChat } from "@/components/MockInterviewChat";
 import { GuestLandingPage } from "@/components/GuestLandingPage";
+import { SkeletonHeader, SkeletonHero } from "@/components/Skeletons";
 
 export default function Home() {
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
+  const [authLoading, setAuthLoading] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -38,26 +40,34 @@ export default function Home() {
 
   useEffect(() => {
     async function loadUser() {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
+      try {
+        setAuthLoading(true);
+        const { data: { user } } = await supabase.auth.getUser();
+        setUser(user);
 
-      if (user) {
-        const { data: prof } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", user.id)
-          .single();
+        if (user) {
+          const { data: prof } = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("id", user.id)
+            .single();
 
-        setProfile(prof);
+          setProfile(prof);
 
-        // Load bookmarks
-        const res = await fetch(`/api/user/bookmarks?userId=${user.id}`);
-        if (res.ok) {
-          const bData = await res.json();
-          setBookmarks((bData.bookmarks || []).map((b: any) => b.question?.question));
+          // Load bookmarks
+          const res = await fetch(`/api/user/bookmarks?userId=${user.id}`);
+          if (res.ok) {
+            const bData = await res.json();
+            setBookmarks((bData.bookmarks || []).map((b: any) => b.question?.question));
+          }
         }
+      } catch (err) {
+        console.error("Auth load error:", err);
+      } finally {
+        setAuthLoading(false);
       }
     }
+
     loadUser();
   }, []);
 
@@ -150,6 +160,16 @@ export default function Home() {
     }
   }
 
+  // Smooth Hydration State: Display skeleton loader while initial auth is resolving
+  if (authLoading) {
+    return (
+      <main className="min-h-screen bg-paper text-ink">
+        <SkeletonHeader />
+        <SkeletonHero />
+      </main>
+    );
+  }
+
   // Unauthenticated guests see the GuestLandingPage exclusively until signed in!
   if (!user) {
     return <GuestLandingPage />;
@@ -184,7 +204,12 @@ export default function Home() {
         </div>
       </header>
 
-      <div className="max-w-6xl mx-auto px-4 py-8 space-y-12">
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, ease: "easeOut" }}
+        className="max-w-6xl mx-auto px-4 py-8 space-y-12"
+      >
         {/* Signature Split Hero View */}
         {!generationResult && !loading && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start py-6">
@@ -432,7 +457,7 @@ export default function Home() {
             )}
           </div>
         )}
-      </div>
+      </motion.div>
 
       <PaywallModal
         isOpen={paywallOpen}

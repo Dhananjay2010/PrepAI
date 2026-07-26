@@ -2,10 +2,12 @@
 
 import { useEffect, useState, use } from "react";
 import Link from "next/link";
+import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 import { QuestionCard } from "@/components/QuestionCard";
 import { MockInterviewChat } from "@/components/MockInterviewChat";
 import { PaywallModal } from "@/components/PaywallModal";
+import { SkeletonSessionDetail } from "@/components/Skeletons";
 
 export default function SessionDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -118,10 +120,8 @@ export default function SessionDetailPage({ params }: { params: Promise<{ id: st
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-paper text-ink p-8">
-        <div className="max-w-4xl mx-auto text-center font-mono text-sm text-slate py-12">
-          Loading session details...
-        </div>
+      <main className="min-h-screen bg-paper text-ink">
+        <SkeletonSessionDetail />
       </main>
     );
   }
@@ -144,7 +144,12 @@ export default function SessionDetailPage({ params }: { params: Promise<{ id: st
 
   return (
     <main className="min-h-screen bg-paper text-ink py-12 px-4">
-      <div className="max-w-4xl mx-auto space-y-8">
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, ease: "easeOut" }}
+        className="max-w-4xl mx-auto space-y-8"
+      >
         {/* Back Link */}
         <div className="flex items-center justify-between">
           <Link href="/dashboard" className="text-xs font-mono text-focus hover:underline flex items-center space-x-1">
@@ -261,7 +266,7 @@ export default function SessionDetailPage({ params }: { params: Promise<{ id: st
             </div>
           </div>
         )}
-      </div>
+      </motion.div>
 
       <PaywallModal
         isOpen={paywallOpen}

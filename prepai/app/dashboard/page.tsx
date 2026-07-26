@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 import { PaywallModal } from "@/components/PaywallModal";
 import { computeReadinessScore } from "@/lib/readiness";
 import { QuestionCard } from "@/components/QuestionCard";
 import { UserNav } from "@/components/UserNav";
+import { SkeletonDashboard } from "@/components/Skeletons";
 
 export default function DashboardPage() {
   const [user, setUser] = useState<any>(null);
@@ -135,6 +137,14 @@ export default function DashboardPage() {
     }
   }
 
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-paper text-ink">
+        <SkeletonDashboard />
+      </main>
+    );
+  }
+
   const isPaid = profile?.plan === "paid";
   const displayedSessions = isPaid ? sessions : sessions.slice(0, 1);
 
@@ -155,7 +165,12 @@ export default function DashboardPage() {
 
   return (
     <main className="min-h-screen bg-paper text-ink py-12 px-4">
-      <div className="max-w-4xl mx-auto space-y-8">
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, ease: "easeOut" }}
+        className="max-w-4xl mx-auto space-y-8"
+      >
         {/* Top Header Row with Streak & Nav */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate/10 pb-6">
           <div>
@@ -313,11 +328,7 @@ export default function DashboardPage() {
             </span>
           </div>
 
-          {loading ? (
-            <div className="bg-paper-raised rounded-xl p-8 text-center text-slate font-mono text-xs border border-slate/10">
-              Loading session history...
-            </div>
-          ) : sessions.length === 0 ? (
+          {sessions.length === 0 ? (
             <div className="bg-paper-raised rounded-xl p-8 text-center space-y-3 border border-slate/10 shadow-[0_4px_24px_-8px_rgba(28,34,48,0.12)]">
               <p className="text-slate font-body text-sm">
                 No prep sessions saved yet — paste a job description on the home page to get started.
@@ -435,7 +446,7 @@ export default function DashboardPage() {
             </button>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       <PaywallModal
         isOpen={paywallOpen}
