@@ -8,6 +8,7 @@ import { QuestionCard } from "@/components/QuestionCard";
 import { MockInterviewChat } from "@/components/MockInterviewChat";
 import { PaywallModal } from "@/components/PaywallModal";
 import { SkeletonSessionDetail } from "@/components/Skeletons";
+import { PrintableCheatSheet } from "@/components/PrintableCheatSheet";
 
 export default function SessionDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -20,6 +21,7 @@ export default function SessionDetailPage({ params }: { params: Promise<{ id: st
   const [loading, setLoading] = useState(true);
   const [mockMode, setMockMode] = useState(false);
   const [paywallOpen, setPaywallOpen] = useState(false);
+  const [showCheatSheet, setShowCheatSheet] = useState(false);
 
   // Get More Questions State
   const [loadingMore, setLoadingMore] = useState(false);
@@ -174,12 +176,22 @@ export default function SessionDetailPage({ params }: { params: Promise<{ id: st
               </h1>
             </div>
 
-            <button
-              onClick={handleStartMockMode}
-              className="bg-mint text-white font-medium px-4 py-2.5 rounded-md hover:opacity-90 transition-opacity text-sm shadow-sm flex items-center space-x-1.5 self-start sm:self-auto"
-            >
-              <span>🎙️ Practice Mock Interview</span>
-            </button>
+            <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-auto">
+              <button
+                onClick={() => setShowCheatSheet(true)}
+                className="bg-paper border border-slate/20 hover:border-focus text-ink font-medium px-3.5 py-2 rounded-md transition-all text-xs flex items-center space-x-1.5 shadow-xs"
+              >
+                <span>📄</span>
+                <span>Print / Export PDF</span>
+              </button>
+
+              <button
+                onClick={handleStartMockMode}
+                className="bg-mint text-white font-medium px-4 py-2 rounded-md hover:opacity-90 transition-opacity text-xs shadow-sm flex items-center space-x-1.5"
+              >
+                <span>🎙️ Practice Mock</span>
+              </button>
+            </div>
           </div>
 
           {/* Job Description Dropdown */}
@@ -239,8 +251,8 @@ export default function SessionDetailPage({ params }: { params: Promise<{ id: st
               </div>
             )}
 
-            {/* Bottom "Get More Questions" Button */}
-            <div className="pt-6 border-t border-slate/10 text-center">
+            {/* Bottom "Get More Questions" & "Export PDF" Row */}
+            <div className="pt-6 border-t border-slate/10 flex flex-col sm:flex-row items-center justify-center gap-4 text-center">
               <button
                 onClick={handleGetMoreQuestions}
                 disabled={loadingMore}
@@ -258,15 +270,33 @@ export default function SessionDetailPage({ params }: { params: Promise<{ id: st
                   </span>
                 )}
               </button>
-              <p className="text-xs text-slate font-mono mt-2">
-                {profile?.plan === "paid"
-                  ? "Pro Plan Active — Generate unlimited additional questions for this role"
-                  : "Upgrade to Pro for unlimited question expansion"}
-              </p>
+
+              <button
+                onClick={() => setShowCheatSheet(true)}
+                className="bg-paper-raised border border-slate/20 text-ink font-medium px-5 py-3 rounded-lg hover:border-focus transition-all shadow-sm inline-flex items-center space-x-2 text-sm"
+              >
+                <span>📄</span>
+                <span>Export Cheat Sheet (PDF)</span>
+              </button>
             </div>
           </div>
         )}
       </motion.div>
+
+      {/* Cheat Sheet Modal View */}
+      {showCheatSheet && (
+        <PrintableCheatSheet
+          roleSummary={session.role_summary || "Software Engineering Role"}
+          seniority={session.seniority || "Engineer"}
+          keySkills={session.key_skills || []}
+          questions={session.questions || []}
+          prepTips={session.prep_tips || []}
+          jobDescription={session.job_description}
+          createdDate={new Date(session.created_at).toLocaleDateString()}
+          interviewDate={profile?.interview_date}
+          onClose={() => setShowCheatSheet(false)}
+        />
+      )}
 
       <PaywallModal
         isOpen={paywallOpen}

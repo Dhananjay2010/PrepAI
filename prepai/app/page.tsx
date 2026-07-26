@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 import { JDInput } from "@/components/JDInput";
 import { QuestionCard, QuestionData } from "@/components/QuestionCard";
@@ -11,6 +11,7 @@ import { PaywallModal } from "@/components/PaywallModal";
 import { MockInterviewChat } from "@/components/MockInterviewChat";
 import { GuestLandingPage } from "@/components/GuestLandingPage";
 import { SkeletonHeader, SkeletonHero } from "@/components/Skeletons";
+import { PrintableCheatSheet } from "@/components/PrintableCheatSheet";
 
 export default function Home() {
   const [user, setUser] = useState<any>(null);
@@ -32,6 +33,7 @@ export default function Home() {
   // UI Modes
   const [mockMode, setMockMode] = useState(false);
   const [paywallOpen, setPaywallOpen] = useState(false);
+  const [showCheatSheet, setShowCheatSheet] = useState(false);
   const [bookmarks, setBookmarks] = useState<string[]>([]);
 
   // Get More Questions State
@@ -330,12 +332,20 @@ export default function Home() {
                   </h2>
                 </div>
 
-                <div className="flex items-center space-x-3">
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <button
+                    onClick={() => setShowCheatSheet(true)}
+                    className="bg-paper border border-slate/20 hover:border-focus text-ink font-medium px-3.5 py-2 rounded-md transition-all text-xs flex items-center space-x-1.5 shadow-xs"
+                  >
+                    <span>📄</span>
+                    <span>Print / Export PDF</span>
+                  </button>
+
                   <button
                     onClick={handleStartMockMode}
-                    className="bg-mint text-white font-medium px-4 py-2 rounded-md hover:opacity-90 transition-opacity text-sm shadow-sm flex items-center space-x-1.5"
+                    className="bg-mint text-white font-medium px-4 py-2 rounded-md hover:opacity-90 transition-opacity text-xs shadow-sm flex items-center space-x-1.5"
                   >
-                    <span>🎙️ Practice Mock Interview</span>
+                    <span>🎙️ Practice Mock</span>
                   </button>
                   <button
                     onClick={() => setGenerationResult(null)}
@@ -414,8 +424,8 @@ export default function Home() {
                   </div>
                 )}
 
-                {/* Bottom "Get More Questions" Button */}
-                <div className="pt-6 border-t border-slate/10 text-center">
+                {/* Bottom "Get More Questions" & "Export PDF" Buttons */}
+                <div className="pt-6 border-t border-slate/10 flex flex-col sm:flex-row items-center justify-center gap-4 text-center">
                   <button
                     onClick={handleGetMoreQuestions}
                     disabled={loadingMore}
@@ -433,11 +443,14 @@ export default function Home() {
                       </span>
                     )}
                   </button>
-                  <p className="text-xs text-slate font-mono mt-2">
-                    {profile?.plan === "paid"
-                      ? "Pro Plan Active — Generate unlimited additional questions for this role"
-                      : "Upgrade to Pro for unlimited question expansion"}
-                  </p>
+
+                  <button
+                    onClick={() => setShowCheatSheet(true)}
+                    className="bg-paper-raised border border-slate/20 text-ink font-medium px-5 py-3 rounded-lg hover:border-focus transition-all shadow-sm inline-flex items-center space-x-2 text-sm"
+                  >
+                    <span>📄</span>
+                    <span>Export Cheat Sheet (PDF)</span>
+                  </button>
                 </div>
 
                 {/* Prep Tips */}
@@ -458,6 +471,20 @@ export default function Home() {
           </div>
         )}
       </motion.div>
+
+      {/* Cheat Sheet Modal View */}
+      {showCheatSheet && generationResult && (
+        <PrintableCheatSheet
+          roleSummary={generationResult.role_summary || "Software Engineering Role"}
+          seniority={generationResult.seniority || "Engineer"}
+          keySkills={generationResult.key_skills || []}
+          questions={generationResult.questions || []}
+          prepTips={generationResult.prep_tips || []}
+          jobDescription={generationResult.jobDescription}
+          interviewDate={profile?.interview_date}
+          onClose={() => setShowCheatSheet(false)}
+        />
+      )}
 
       <PaywallModal
         isOpen={paywallOpen}
