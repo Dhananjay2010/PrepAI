@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 
+const bookmarkMemoryCache = new Map<string, { data: any; expiresAt: number }>();
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
@@ -8,6 +10,15 @@ export async function GET(req: NextRequest) {
 
     if (!userId) {
       return NextResponse.json({ error: "userId parameter is required" }, { status: 400 });
+    }
+
+    const now = Date.now();
+    const cached = bookmarkMemoryCache.get(userId);
+    if (cached && cached.expiresAt > now) {
+      return NextResponse.json(
+        { bookmarks: cached.data },
+        { headers: { "Cache-Control": "private, max-age=60, stale-while-revalidate=300" } }
+      );
     }
 
     const { data, error } = await supabaseAdmin
@@ -18,7 +29,13 @@ export async function GET(req: NextRequest) {
 
     if (error) throw error;
 
-    return NextResponse.json({ bookmarks: data || [] });
+    const bList = data || [];
+    bookmarkMemoryCache.set(userId, { data: bList, expiresAt: now + 30000 }); // Cache for 30 sec
+
+    return NextResponse.json(
+      { bookmarks: bList },
+      { headers: { "Cache-Control": "private, max-age=60, stale-while-revalidate=300" } }
+    );
   } catch (err: any) {
     console.error("Fetch bookmarks error:", err);
     return NextResponse.json({ error: err.message || "Failed to fetch bookmarks" }, { status: 500 });
@@ -32,6 +49,9 @@ export async function POST(req: NextRequest) {
     if (!userId || !question) {
       return NextResponse.json({ error: "userId and question required" }, { status: 400 });
     }
+
+    // Invalidate memory cache for this user
+    bookmarkMemoryCache.delete(userId);
 
     if (action === "remove") {
       await supabaseAdmin

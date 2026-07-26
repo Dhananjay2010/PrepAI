@@ -31,14 +31,18 @@ export async function POST(req: NextRequest) {
     let plan: "free" | "paid" = "free";
     if (userId) {
       await ensureUserProfile(userId);
-      const usageCheck = await checkAndIncrementFreeUsage(userId);
+      const [usageCheck, userPlan] = await Promise.all([
+        checkAndIncrementFreeUsage(userId),
+        getUserPlan(userId),
+      ]);
+
       if (!usageCheck.allowed) {
         return NextResponse.json(
           { error: usageCheck.reason || "Daily free limit reached — upgrade to Pro for unlimited prep sessions" },
           { status: 429 }
         );
       }
-      plan = await getUserPlan(userId);
+      plan = userPlan;
     }
 
     const questionCount = plan === "paid" ? 20 : 5;
@@ -52,21 +56,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Save session server-side for logged in users
+    // Fire DB session insertion and streak updating asynchronously without delaying candidate response
     if (userId) {
-      try {
-        await supabaseAdmin.from("sessions").insert({
-          user_id: userId,
-          job_description: jobDescription,
-          role_summary: result.role_summary,
-          seniority: result.seniority,
-          questions: result.questions,
-        });
-
-        await updateStreak(userId);
-      } catch (saveErr) {
-        console.error("Server-side session save warning:", saveErr);
-      }
+      (async () => {
+        try {
+          await supabaseAdmin.from("sessions").insert({
+            user_id: userId,
+            job_description: jobDescription,
+            role_summary: result.role_summary,
+            seniority: result.seniority,
+            questions: result.questions,
+          });
+          await updateStreak(userId);
+        } catch (saveErr) {
+          console.error("Async server-side session save warning:", saveErr);
+        }
+      })();
     }
 
     return NextResponse.json(result);
