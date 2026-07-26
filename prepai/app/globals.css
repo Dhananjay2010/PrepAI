@@ -1,0 +1,25 @@
+@import "tailwindcss";
+
+@config "../tailwind.config.ts";
+
+@theme {
+  --color-ink: #1C2230;
+  --color-paper: #F6F5F1;
+  --color-paper-raised: #FFFFFF;
+  --color-slate: #6B7280;
+  --color-focus: #4C5FD5;
+  --color-highlight: #FFD166;
+  --color-mint: #2FAE85;
+  --color-coral: #E8604C;
+
+  --font-display: var(--font-fraunces), serif;
+  --font-body: var(--font-inter), sans-serif;
+  --font-mono: var(--font-plex-mono), monospace;
+}
+
+body {
+  background-color: #F6F5F1;
+  color: #1C2230;
+  font-family: var(--font-inter), sans-serif;
+  min-height: 100vh;
+}
