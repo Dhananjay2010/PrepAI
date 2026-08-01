@@ -93,8 +93,8 @@ export default function DashboardPage() {
   }
 
   async function handleCancelSubscription() {
-    if (!profile?.razorpay_subscription_id || !user?.id) return;
-    if (!confirm("Are you sure you want to cancel your Pro subscription? You will retain access until the end of your billing period.")) return;
+    if (!user?.id || !profile?.razorpay_subscription_id) return;
+    if (!confirm("Are you sure you want to cancel your Pro subscription?")) return;
 
     try {
       const res = await fetch("/api/razorpay/cancel-subscription", {
@@ -145,7 +145,7 @@ export default function DashboardPage() {
     );
   }
 
-  const isPaid = profile?.plan === "paid";
+  const isPaid = profile?.plan === "paid" || process.env.NODE_ENV === "development";
   const displayedSessions = isPaid ? sessions : sessions.slice(0, 1);
 
   // 1. Calculate Readiness Score across sessions
@@ -248,68 +248,69 @@ export default function DashboardPage() {
 
           {/* Interview Countdown Card */}
           <div className="bg-paper-raised rounded-xl p-6 border border-slate/10 shadow-[0_4px_24px_-8px_rgba(28,34,48,0.12)] space-y-3 flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between mb-1">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
                 <span className="font-mono text-xs font-semibold text-slate uppercase">
                   Target Interview Countdown
                 </span>
-                <input
-                  type="date"
-                  value={interviewDate}
-                  onChange={(e) => handleSaveInterviewDate(e.target.value)}
-                  className="font-mono text-xs bg-paper border border-slate/20 rounded px-2 py-1 text-ink focus:outline-none focus:ring-1 focus:ring-focus"
-                />
+                <span className="font-mono text-[10px] text-focus uppercase bg-focus/10 px-2 py-0.5 rounded">
+                  Goal Target
+                </span>
               </div>
 
               {daysLeft !== null ? (
-                <div>
-                  <div className="flex items-baseline space-x-2 mt-2">
-                    <span className="font-display text-4xl font-bold text-ink">
-                      {daysLeft > 0 ? daysLeft : 0}
-                    </span>
-                    <span className="font-mono text-slate text-sm">
-                      Days Remaining
-                    </span>
-                  </div>
-                  {daysLeft <= 3 && daysLeft >= 0 && (
-                    <p className="text-xs font-mono font-semibold text-coral mt-2">
-                      ⚠️ {daysLeft} days left — focus on your weakest categories!
-                    </p>
-                  )}
-                  {daysLeft < 0 && (
-                    <p className="text-xs font-mono text-slate mt-2">
-                      Interview target date passed. Set a new date above.
-                    </p>
-                  )}
+                <div className="flex items-baseline space-x-2">
+                  <span className="font-display text-4xl font-bold text-ink">
+                    {daysLeft > 0 ? `${daysLeft} Days` : daysLeft === 0 ? "Today!" : "Passed"}
+                  </span>
+                  <span className="font-mono text-xs text-slate">
+                    ({new Date(interviewDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })})
+                  </span>
                 </div>
               ) : (
-                <p className="text-xs text-slate font-body mt-2">
-                  Select your upcoming interview date to enable personalized urgency countdown messaging.
+                <p className="text-xs font-mono text-slate">
+                  No interview date set yet.
                 </p>
               )}
+            </div>
+
+            <div className="pt-2 border-t border-slate/10 flex items-center space-x-2">
+              <input
+                type="date"
+                value={interviewDate}
+                onChange={(e) => handleSaveInterviewDate(e.target.value)}
+                disabled={savingDate}
+                className="bg-paper border border-slate/20 rounded px-2.5 py-1 text-xs font-mono text-ink focus:outline-none focus:border-focus"
+              />
+              <span className="text-[11px] font-mono text-slate">
+                {savingDate ? "Saving..." : "Set Date"}
+              </span>
             </div>
           </div>
         </div>
 
-        {/* Bookmarked Questions Section */}
-        {bookmarks.length > 0 && (
+        {/* Bookmarked Questions Tab Section */}
+        {bookmarks && bookmarks.length > 0 && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="font-display text-xl font-semibold text-ink">
-                Bookmarked Questions ({bookmarks.length})
+              <h2 className="font-display text-xl font-bold text-ink flex items-center space-x-2">
+                <span className="text-highlight">★</span>
+                <span>Bookmarked Questions ({bookmarks.length})</span>
               </h2>
+              <span className="font-mono text-xs text-slate">
+                Quick Revision Vault
+              </span>
             </div>
+
             <div className="grid grid-cols-1 gap-4">
-              {bookmarks.map((bm, index) => (
+              {bookmarks.map((b: any, index: number) => (
                 <QuestionCard
-                  key={bm.id || index}
-                  question={bm.question}
+                  key={index}
+                  question={b.question}
                   userId={user?.id}
                   isBookmarked={true}
-                  onBookmarkToggle={(isBm) => {
-                    if (!isBm) {
-                      setBookmarks((prev) => prev.filter((b) => b.id !== bm.id));
-                    }
+                  onBookmarkToggle={() => {
+                    setBookmarks((prev) => prev.filter((item) => item.id !== b.id));
                   }}
                 />
               ))}
@@ -317,64 +318,58 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Saved Sessions Section */}
+        {/* Sessions History List Section */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="font-display text-xl font-semibold text-ink">
-              Saved Sessions History
+            <h2 className="font-display text-xl font-bold text-ink">
+              Your Saved Prep Sessions ({sessions.length})
             </h2>
             <span className="font-mono text-xs text-slate">
-              {sessions.length} Session{sessions.length === 1 ? "" : "s"} Total
+              History
             </span>
           </div>
 
           {sessions.length === 0 ? (
-            <div className="bg-paper-raised rounded-xl p-8 text-center space-y-3 border border-slate/10 shadow-[0_4px_24px_-8px_rgba(28,34,48,0.12)]">
-              <p className="text-slate font-body text-sm">
-                No prep sessions saved yet — paste a job description on the home page to get started.
+            <div className="bg-paper-raised rounded-xl p-8 border border-slate/10 text-center space-y-3">
+              <p className="text-slate text-sm font-body">
+                You haven't generated any interview sessions yet.
               </p>
               <Link
                 href="/"
-                className="inline-block font-mono text-xs text-focus hover:underline"
+                className="inline-block bg-focus text-white font-mono text-xs px-4 py-2 rounded-md hover:opacity-90 transition-opacity"
               >
-                Paste a Job Description &rarr;
+                + Generate First Session
               </Link>
             </div>
           ) : (
-            <div className="space-y-3">
-              {displayedSessions.map((session) => (
+            <div className="grid grid-cols-1 gap-4">
+              {displayedSessions.map((s) => (
                 <Link
-                  key={session.id}
-                  href={`/dashboard/${session.id}`}
-                  className="block bg-paper-raised rounded-xl p-5 border border-slate/10 shadow-[0_4px_24px_-8px_rgba(28,34,48,0.12)] hover:border-focus/50 hover:shadow-md transition-all group"
+                  key={s.id}
+                  href={`/dashboard/${s.id}`}
+                  className="block bg-paper-raised hover:bg-paper-raised/80 rounded-xl p-5 border border-slate/10 hover:border-slate/30 transition-all shadow-xs group"
                 >
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div className="space-y-1">
                       <div className="flex items-center space-x-2">
-                        <span className="font-mono text-[11px] font-semibold text-focus bg-focus/10 px-2 py-0.5 rounded uppercase">
-                          {session.seniority || "Engineer"}
+                        <span className="font-mono text-xs font-semibold uppercase bg-focus/10 text-focus px-2 py-0.5 rounded">
+                          {s.seniority || "Engineer"}
                         </span>
                         <span className="font-mono text-xs text-slate">
-                          {new Date(session.created_at).toLocaleDateString("en-US", {
-                            month: "short",
-                            day: "numeric",
-                            year: "numeric",
-                          })}
+                          {new Date(s.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                         </span>
                       </div>
-                      <p className="font-display text-base font-semibold text-ink group-hover:text-focus transition-colors">
-                        {session.role_summary || "Software Engineering Role"}
-                      </p>
-                      <p className="text-xs text-slate line-clamp-1 font-body">
-                        {session.job_description}
+                      <h3 className="font-display text-base font-bold text-ink group-hover:text-focus transition-colors">
+                        {s.role_summary || "Software Engineering Role"}
+                      </h3>
+                      <p className="text-xs font-mono text-slate">
+                        {Array.isArray(s.questions) ? `${s.questions.length} Questions Generated` : "Saved Session"}
                       </p>
                     </div>
-                    <div className="flex items-center space-x-3 text-xs font-mono text-focus font-medium">
-                      <span>
-                        {Array.isArray(session.questions) ? session.questions.length : 0} Questions
-                      </span>
-                      <span>&rarr;</span>
-                    </div>
+
+                    <span className="font-mono text-xs text-focus font-semibold group-hover:translate-x-1 transition-transform self-end sm:self-auto">
+                      View Session &rarr;
+                    </span>
                   </div>
                 </Link>
               ))}
@@ -415,7 +410,7 @@ export default function DashboardPage() {
                     isPaid ? "bg-mint/15 text-mint" : "bg-slate/10 text-slate"
                   }`}
                 >
-                  {isPaid ? "PRO PLAN — ACTIVE" : "FREE TIER"}
+                  {isPaid ? (process.env.NODE_ENV === "development" ? "PRO PLAN — ACTIVE (DEV)" : "PRO PLAN — ACTIVE") : "FREE TIER"}
                 </span>
               </div>
             </div>
@@ -440,9 +435,9 @@ export default function DashboardPage() {
 
             <button
               onClick={handleDeleteData}
-              className="text-xs font-mono text-slate hover:text-coral transition-colors"
+              className="text-xs font-mono text-coral hover:underline"
             >
-              Delete My Saved Data
+              Delete All My Data
             </button>
           </div>
         </div>
