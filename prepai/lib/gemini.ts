@@ -211,7 +211,7 @@ export async function generatePreciseAnswer(
   const ai = getAIClient();
 
   const prompt = `You are an elite senior technical interviewer and candidate coach.
-Generate a PRECISE, high-impact model answer to this interview question.
+Generate a PRECISE, high-impact model answer to this interview question, along with 2 to 3 curated web learning resources.
 
 Question: "${questionText}"
 Category: "${category}"
@@ -221,6 +221,7 @@ Constraints:
 - Keep the overall length concise (150 to 200 words max).
 - Ensure the candidate sounds confident, knowledgeable, and structured when speaking this answer.
 - Highlight core architectural/technical trade-offs clearly.
+- Provide 2 or 3 specific web learning topics with search query URLs so the candidate can read official documentation or guides to understand this topic deeply.
 
 Respond in JSON:
 {
@@ -230,7 +231,17 @@ Respond in JSON:
     "Core point 2 (trade-off or edge case)",
     "Core point 3 (practical production result)"
   ],
-  "sample_spoken_answer": "A short, natural paragraph ready to speak verbatim in an interview."
+  "sample_spoken_answer": "A short, natural paragraph ready to speak verbatim in an interview.",
+  "recommended_reading": [
+    {
+      "title": "Descriptive Documentation Title (e.g. MDN - Async/Await Deep Dive)",
+      "url": "https://www.google.com/search?q=MDN+Async+Await+Deep+Dive"
+    },
+    {
+      "title": "Architecture & Best Practices Guide",
+      "url": "https://www.google.com/search?q=System+Design+Rate+Limiting+Algorithms"
+    }
+  ]
 }`;
 
   let responseText = "";

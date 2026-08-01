@@ -17,6 +17,10 @@ export interface QuestionData {
     summary_statement: string;
     key_bullets: string[];
     sample_spoken_answer: string;
+    recommended_reading?: {
+      title: string;
+      url: string;
+    }[];
   };
 }
 
@@ -45,6 +49,10 @@ export function QuestionCard({
     summary_statement: string;
     key_bullets: string[];
     sample_spoken_answer: string;
+    recommended_reading?: {
+      title: string;
+      url: string;
+    }[];
   } | null>(question.precise_answer || null);
 
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -179,6 +187,20 @@ export function QuestionCard({
       setLoadingPrecise(false);
     }
   }
+
+  // Recommended Reading Links (Gemini generated or fallback search links)
+  const learningLinks = preciseAnswer?.recommended_reading?.length
+    ? preciseAnswer.recommended_reading
+    : [
+        {
+          title: `${question.category} Technical Documentation & Guides`,
+          url: `https://www.google.com/search?q=${encodeURIComponent(question.category + " " + question.question + " documentation")}`,
+        },
+        {
+          title: `System & Code Examples: ${question.question.slice(0, 45)}...`,
+          url: `https://www.google.com/search?q=${encodeURIComponent(question.question + " architecture examples")}`,
+        },
+      ];
 
   return (
     <motion.div
@@ -316,6 +338,31 @@ export function QuestionCard({
                     <p className="text-ink/90 italic bg-paper p-3 rounded border border-slate/10 leading-relaxed">
                       "{preciseAnswer.sample_spoken_answer}"
                     </p>
+                  </div>
+                )}
+
+                {/* Deep-Dive Web Resources Section */}
+                {learningLinks && learningLinks.length > 0 && (
+                  <div className="pt-2 border-t border-mint/20 space-y-1.5">
+                    <p className="font-mono text-[11px] font-semibold text-slate uppercase flex items-center space-x-1">
+                      <span>🌐</span>
+                      <span>Recommended Deep-Dive Resources:</span>
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {learningLinks.map((item, idx) => (
+                        <a
+                          key={idx}
+                          href={item.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center space-x-1.5 text-[11px] font-mono bg-paper hover:bg-paper/80 text-focus border border-focus/20 px-2.5 py-1 rounded-md transition-colors shadow-2xs group"
+                        >
+                          <span>🔗</span>
+                          <span className="group-hover:underline">{item.title}</span>
+                          <span className="text-[10px] text-slate/60">↗</span>
+                        </a>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>

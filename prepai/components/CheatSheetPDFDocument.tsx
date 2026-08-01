@@ -4,6 +4,7 @@ import {
   Page,
   Text,
   View,
+  Link,
   StyleSheet,
 } from "@react-pdf/renderer";
 import { QuestionData } from "./QuestionCard";
@@ -238,6 +239,29 @@ const styles = StyleSheet.create({
     lineHeight: 1.3,
   },
 
+  // Recommended Learning Links
+  linksBox: {
+    marginTop: 4,
+    paddingTop: 4,
+    borderTopWidth: 1,
+    borderTopColor: "#a7f3d0",
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 4,
+  },
+  learningLink: {
+    fontSize: 7.5,
+    color: "#1d4ed8",
+    backgroundColor: "#ffffff",
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: 3,
+    borderWidth: 1,
+    borderColor: "#bfdbfe",
+    textDecoration: "none",
+    fontWeight: "bold",
+  },
+
   // Outline Box
   outlineAnswerBox: {
     backgroundColor: "#f8fafc",
@@ -360,33 +384,58 @@ export function CheatSheetPDFDocument({
           3. QUESTIONS & MODEL ANSWERS ({questions.length})
         </Text>
         <View>
-          {questions.map((q, idx) => (
-            <View key={idx} style={styles.questionCard} wrap={false}>
-              <View style={styles.qHeader}>
-                <Text style={styles.qNumBadge}>Q{q.num || idx + 1}</Text>
-                <Text style={styles.categoryBadge}>{q.category}</Text>
+          {questions.map((q, idx) => {
+            const links = q.precise_answer?.recommended_reading?.length
+              ? q.precise_answer.recommended_reading
+              : [
+                  {
+                    title: `Docs: ${q.category}`,
+                    url: `https://www.google.com/search?q=${encodeURIComponent(q.category + " " + q.question + " documentation")}`,
+                  },
+                ];
+
+            return (
+              <View key={idx} style={styles.questionCard} wrap={false}>
+                <View style={styles.qHeader}>
+                  <Text style={styles.qNumBadge}>Q{q.num || idx + 1}</Text>
+                  <Text style={styles.categoryBadge}>{q.category}</Text>
+                </View>
+
+                <Text style={styles.questionText}>{q.question}</Text>
+
+                {q.precise_answer ? (
+                  <View style={styles.preciseAnswerBox}>
+                    <Text style={styles.answerHeader}>✨ PRECISE VERBAL MODEL ANSWER</Text>
+                    <Text style={styles.answerSummary}>"{q.precise_answer.summary_statement}"</Text>
+                    {q.precise_answer.sample_spoken_answer && (
+                      <Text style={styles.sampleAnswerText}>
+                        "{q.precise_answer.sample_spoken_answer}"
+                      </Text>
+                    )}
+
+                    {/* Vector Clickable Links in PDF */}
+                    {links && links.length > 0 && (
+                      <View style={styles.linksBox}>
+                        <Text style={{ fontSize: 7, color: "#047857", fontWeight: "bold" }}>
+                          Deep-Dive Web Links:
+                        </Text>
+                        {links.map((item, lIdx) => (
+                          <Link key={lIdx} src={item.url} style={styles.learningLink}>
+                            🔗 {item.title}
+                          </Link>
+                        ))}
+                      </View>
+                    )}
+                  </View>
+                ) : (
+                  <View style={styles.outlineAnswerBox}>
+                    <Text style={styles.outlineHeader}>MODEL ANSWER OUTLINE</Text>
+                    <Text style={styles.outlineText}>{q.strong_answer_outline}</Text>
+                  </View>
+                )}
               </View>
-
-              <Text style={styles.questionText}>{q.question}</Text>
-
-              {q.precise_answer ? (
-                <View style={styles.preciseAnswerBox}>
-                  <Text style={styles.answerHeader}>✨ PRECISE VERBAL MODEL ANSWER</Text>
-                  <Text style={styles.answerSummary}>"{q.precise_answer.summary_statement}"</Text>
-                  {q.precise_answer.sample_spoken_answer && (
-                    <Text style={styles.sampleAnswerText}>
-                      "{q.precise_answer.sample_spoken_answer}"
-                    </Text>
-                  )}
-                </View>
-              ) : (
-                <View style={styles.outlineAnswerBox}>
-                  <Text style={styles.outlineHeader}>MODEL ANSWER OUTLINE</Text>
-                  <Text style={styles.outlineText}>{q.strong_answer_outline}</Text>
-                </View>
-              )}
-            </View>
-          ))}
+            );
+          })}
         </View>
 
         {/* Fixed Page Footer */}
