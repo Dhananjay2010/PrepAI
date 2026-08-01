@@ -5,11 +5,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabase";
+import dynamic from "next/dynamic";
 import { QuestionCard } from "@/components/QuestionCard";
 import { MockInterviewChat } from "@/components/MockInterviewChat";
 import { PaywallModal } from "@/components/PaywallModal";
 import { SkeletonSessionDetail } from "@/components/Skeletons";
-import { PrintableCheatSheet } from "@/components/PrintableCheatSheet";
 import { TopicBreakdownBar } from "@/components/TopicBreakdownBar";
 import { InterviewPipelineTabs, RoundFilter } from "@/components/InterviewPipelineTabs";
 import { CopilotModal } from "@/components/CopilotModal";
@@ -18,6 +18,11 @@ import { FlashcardReviewModal, FlashcardItem } from "@/components/FlashcardRevie
 import { ReadinessGauge } from "@/components/ReadinessGauge";
 import { getOrGenerateTopics, resolveQuestionRound } from "@/lib/gemini";
 import { computeSessionReadiness } from "@/lib/readiness";
+
+const PrintableCheatSheet = dynamic(
+  () => import("@/components/PrintableCheatSheet").then((mod) => mod.PrintableCheatSheet),
+  { ssr: false }
+);
 
 export default function SessionDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);

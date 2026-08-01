@@ -203,6 +203,49 @@ const styles = StyleSheet.create({
     lineHeight: 1.3,
   },
 
+  // Code Block Box
+  codeBox: {
+    backgroundColor: "#0f172a",
+    borderRadius: 4,
+    padding: 6,
+    marginTop: 4,
+    marginBottom: 4,
+  },
+  codeHeader: {
+    fontSize: 7,
+    fontWeight: "bold",
+    color: "#38bdf8",
+    marginBottom: 2,
+  },
+  codeText: {
+    fontSize: 7.5,
+    color: "#34d399",
+    fontFamily: "Courier",
+    lineHeight: 1.2,
+  },
+
+  // Trade-off Box
+  tradeoffBox: {
+    backgroundColor: "#fffbeb",
+    borderColor: "#fde68a",
+    borderWidth: 1,
+    borderRadius: 4,
+    padding: 6,
+    marginTop: 4,
+    marginBottom: 4,
+  },
+  tradeoffTitle: {
+    fontSize: 7.5,
+    fontWeight: "bold",
+    color: "#b45309",
+    marginBottom: 2,
+  },
+  tradeoffText: {
+    fontSize: 7.5,
+    color: "#78350f",
+    lineHeight: 1.3,
+  },
+
   // Precise Answer Box
   preciseAnswerBox: {
     backgroundColor: "#ecfdf5",
@@ -381,7 +424,7 @@ export function CheatSheetPDFDocument({
 
         {/* SECTION 3: QUESTIONS & MODEL ANSWERS */}
         <Text style={styles.sectionTitle}>
-          3. QUESTIONS & MODEL ANSWERS ({questions.length})
+          3. QUESTIONS, CODE SNIPPETS & MODEL ANSWERS ({questions.length})
         </Text>
         <View>
           {questions.map((q, idx) => {
@@ -402,6 +445,27 @@ export function CheatSheetPDFDocument({
                 </View>
 
                 <Text style={styles.questionText}>{q.question}</Text>
+
+                {/* Code Snippet Box in PDF */}
+                {q.sample_code_snippet && q.sample_code_snippet.code && (
+                  <View style={styles.codeBox}>
+                    <Text style={styles.codeHeader}>
+                      💻 {q.sample_code_snippet.language.toUpperCase()} IMPLEMENTATION:
+                    </Text>
+                    <Text style={styles.codeText}>{q.sample_code_snippet.code.slice(0, 300)}</Text>
+                  </View>
+                )}
+
+                {/* Trade-off Matrix Box in PDF */}
+                {q.trade_offs && q.trade_offs.technology_a && (
+                  <View style={styles.tradeoffBox}>
+                    <Text style={styles.tradeoffTitle}>⚖️ ARCHITECTURAL TRADE-OFF:</Text>
+                    <Text style={styles.tradeoffText}>
+                      Option A: {q.trade_offs.technology_a} vs Option B: {q.trade_offs.technology_b}
+                    </Text>
+                    <Text style={styles.tradeoffText}>Verdict: {q.trade_offs.verdict}</Text>
+                  </View>
+                )}
 
                 {q.precise_answer ? (
                   <View style={styles.preciseAnswerBox}>

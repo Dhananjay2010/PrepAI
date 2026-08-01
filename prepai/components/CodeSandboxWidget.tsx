@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { executeCodeInSandbox } from "@/lib/codeRunner";
 
 interface CodeSandboxWidgetProps {
   initialCode: string;
@@ -18,6 +19,7 @@ export function CodeSandboxWidget({
   const [code, setCode] = useState(initialCode);
   const [copied, setCopied] = useState(false);
   const [output, setOutput] = useState<string | null>(null);
+  const [isSuccess, setIsSuccess] = useState<boolean>(true);
   const [isExecuting, setIsExecuting] = useState(false);
 
   function handleCopy() {
@@ -26,22 +28,20 @@ export function CodeSandboxWidget({
     setTimeout(() => setCopied(false), 2000);
   }
 
-  function handleRun() {
+  async function handleRun() {
     setIsExecuting(true);
     setOutput(null);
 
-    setTimeout(() => {
+    try {
+      const res = await executeCodeInSandbox(code, language);
+      setIsSuccess(res.success);
+      setOutput(`[EXECUTION RESULT - ${language.toUpperCase()}]\nExecution Latency: ${res.executionTimeMs}ms\nStatus: ${res.success ? "PASSED (0 errors)" : "FAILED"}\n\n${res.output}`);
+    } catch (err: any) {
+      setIsSuccess(false);
+      setOutput(`Runtime Error: ${err?.message || "Execution failed"}`);
+    } finally {
       setIsExecuting(false);
-      if (language.toLowerCase() === "sql") {
-        setOutput(
-          `[SQL EXECUTION SIMULATOR]\nQuery executed in 1.4ms.\nRows returned: 14\nIndex scan on primary key: OPTIMAL`
-        );
-      } else {
-        setOutput(
-          `[SANDBOX OUTPUT SIMULATOR]\n> Code compiled cleanly.\n> Time complexity: O(N log N)\n> Space complexity: O(1)\n> All 10 assertion tests passed.`
-        );
-      }
-    }, 600);
+    }
   }
 
   return (
@@ -53,9 +53,9 @@ export function CodeSandboxWidget({
           <span className="w-2.5 h-2.5 rounded-full bg-yellow-500/80 inline-block" />
           <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80 inline-block" />
           <span className="text-neutral-400 font-bold uppercase text-[10px] ml-2">
-            💻 {language.toUpperCase()} SANDBOX
+            💻 {language.toUpperCase()} REAL SANDBOX
           </span>
-          {title && <span className="text-neutral-500 text-[11px] font-normal">• {title}</span>}
+          {title && <span className="text-neutral-500 text-[11px] font-normal truncate max-w-xs">• {title}</span>}
         </div>
 
         <div className="flex items-center space-x-2">
@@ -68,9 +68,9 @@ export function CodeSandboxWidget({
           <button
             onClick={handleRun}
             disabled={isExecuting}
-            className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-1 rounded text-[11px] transition-colors disabled:opacity-50"
+            className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-1 rounded text-[11px] transition-colors disabled:opacity-50 flex items-center space-x-1"
           >
-            {isExecuting ? "Executing..." : "▶ Run Sandbox"}
+            <span>{isExecuting ? "⏳ Running..." : "▶ Run Sandbox"}</span>
           </button>
         </div>
       </div>
@@ -97,7 +97,13 @@ export function CodeSandboxWidget({
 
       {/* Execution Output Window */}
       {output && (
-        <div className="bg-black p-3 border-t border-emerald-900/50 text-[11px] text-emerald-300 whitespace-pre-wrap leading-relaxed animate-in fade-in duration-150">
+        <div
+          className={`p-3 border-t text-[11px] whitespace-pre-wrap leading-relaxed animate-in fade-in duration-150 ${
+            isSuccess
+              ? "bg-black border-emerald-900/50 text-emerald-300"
+              : "bg-red-950/40 border-red-900/50 text-red-300"
+          }`}
+        >
           {output}
         </div>
       )}

@@ -6,15 +6,20 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 import { JDInput } from "@/components/JDInput";
+import dynamic from "next/dynamic";
 import { QuestionCard, QuestionData } from "@/components/QuestionCard";
 import { UserNav } from "@/components/UserNav";
 import { PaywallModal } from "@/components/PaywallModal";
 import { MockInterviewChat } from "@/components/MockInterviewChat";
 import { GuestLandingPage } from "@/components/GuestLandingPage";
 import { SkeletonHeader, SkeletonHero } from "@/components/Skeletons";
-import { PrintableCheatSheet } from "@/components/PrintableCheatSheet";
 import { TopicBreakdownBar } from "@/components/TopicBreakdownBar";
 import { TopicData } from "@/lib/gemini";
+
+const PrintableCheatSheet = dynamic(
+  () => import("@/components/PrintableCheatSheet").then((mod) => mod.PrintableCheatSheet),
+  { ssr: false }
+);
 
 export default function Home() {
   const router = useRouter();
@@ -81,7 +86,12 @@ export default function Home() {
     loadUser();
   }, []);
 
-  async function handleGenerate(jobDescription: string) {
+  async function handleGenerate(dataInput: any) {
+    const jobDescription = typeof dataInput === "string" ? dataInput : dataInput.jobDescription;
+    const resumeText = typeof dataInput === "object" ? dataInput.resumeText : undefined;
+    const targetCompany = typeof dataInput === "object" ? dataInput.targetCompany : undefined;
+    const targetSeniority = typeof dataInput === "object" ? dataInput.targetSeniority : undefined;
+
     try {
       setLoading(true);
       setError(null);
@@ -92,6 +102,9 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           jobDescription,
+          resumeText,
+          targetCompany,
+          targetSeniority,
           userId: user?.id,
         }),
       });

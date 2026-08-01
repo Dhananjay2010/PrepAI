@@ -10,7 +10,7 @@ interface CurriculumDay {
   icon: string;
 }
 
-const blitzCurriculum: CurriculumDay[] = [
+const defaultBlitzCurriculum: CurriculumDay[] = [
   {
     day: 1,
     title: "Day 1: Foundations & Recruiter Fit",
@@ -62,8 +62,13 @@ const blitzCurriculum: CurriculumDay[] = [
   },
 ];
 
-export function CountdownCurriculumWidget() {
+interface CountdownCurriculumWidgetProps {
+  weakTopics?: string[];
+}
+
+export function CountdownCurriculumWidget({ weakTopics = [] }: CountdownCurriculumWidgetProps) {
   const [completedDays, setCompletedDays] = useState<number[]>([]);
+  const [curriculum, setCurriculum] = useState<CurriculumDay[]>(defaultBlitzCurriculum);
 
   useEffect(() => {
     try {
@@ -75,6 +80,29 @@ export function CountdownCurriculumWidget() {
       console.error(err);
     }
   }, []);
+
+  useEffect(() => {
+    if (weakTopics && weakTopics.length > 0) {
+      const updated = defaultBlitzCurriculum.map((dayItem, idx) => {
+        if (idx === 1 && weakTopics[0]) {
+          return {
+            ...dayItem,
+            title: `Day 2: Priority Remediation (${weakTopics[0]})`,
+            task: `Deep-dive documentation, code sandboxes & trade-offs for ${weakTopics[0]}.`,
+          };
+        }
+        if (idx === 2 && weakTopics[1]) {
+          return {
+            ...dayItem,
+            title: `Day 3: Priority Remediation (${weakTopics[1]})`,
+            task: `Practice architecture diagrams & failover strategies for ${weakTopics[1]}.`,
+          };
+        }
+        return dayItem;
+      });
+      setCurriculum(updated);
+    }
+  }, [weakTopics]);
 
   function toggleDay(day: number) {
     let next: number[];
@@ -98,7 +126,7 @@ export function CountdownCurriculumWidget() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate/10 pb-4">
         <div>
           <span className="text-xs font-bold uppercase text-focus bg-focus/10 border border-focus/20 px-2.5 py-0.5 rounded">
-            ⚡ 7-DAY INTERVIEW BLITZ CURRICULUM
+            ⚡ ADAPTIVE 7-DAY INTERVIEW BLITZ CURRICULUM
           </span>
           <h3 className="font-display text-lg font-bold text-ink mt-1.5">
             Daily Step-by-Step Prep Goal Tracker
@@ -117,7 +145,7 @@ export function CountdownCurriculumWidget() {
       </div>
 
       <div className="grid grid-cols-1 gap-2.5">
-        {blitzCurriculum.map((item) => {
+        {curriculum.map((item) => {
           const isDone = completedDays.includes(item.day);
           return (
             <div

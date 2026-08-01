@@ -43,6 +43,8 @@ export function PrintableCheatSheet({
     setIsClient(true);
   }, []);
 
+  if (!isClient) return null;
+
   const pdfDoc = (
     <CheatSheetPDFDocument
       roleSummary={roleSummary}
@@ -76,20 +78,18 @@ export function PrintableCheatSheet({
         </div>
 
         <div className="flex items-center space-x-3">
-          {isClient && (
-            <PDFDownloadLink
-              document={pdfDoc}
-              fileName={fileName}
-              className="bg-focus text-white font-medium text-sm px-5 py-2.5 rounded-lg hover:opacity-90 transition-opacity shadow-md flex items-center space-x-2"
-            >
-              {({ loading }) => (
-                <>
-                  <span>📥</span>
-                  <span>{loading ? "Generating PDF..." : "Download PDF File"}</span>
-                </>
-              )}
-            </PDFDownloadLink>
-          )}
+          <PDFDownloadLink
+            document={pdfDoc}
+            fileName={fileName}
+            className="bg-focus text-white font-medium text-sm px-5 py-2.5 rounded-lg hover:opacity-90 transition-opacity shadow-md flex items-center space-x-2"
+          >
+            {({ loading }) => (
+              <>
+                <span>📥</span>
+                <span>{loading ? "Generating PDF..." : "Download PDF File"}</span>
+              </>
+            )}
+          </PDFDownloadLink>
 
           <button
             onClick={onClose}
@@ -102,15 +102,9 @@ export function PrintableCheatSheet({
 
       {/* PDF Interactive Preview Container */}
       <div className="w-full max-w-5xl h-[80vh] bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
-        {isClient ? (
-          <PDFViewer width="100%" height="100%" className="w-full h-full border-none">
-            {pdfDoc}
-          </PDFViewer>
-        ) : (
-          <div className="flex items-center justify-center h-full font-mono text-xs text-slate animate-pulse">
-            Loading PDF Viewer...
-          </div>
-        )}
+        <PDFViewer width="100%" height="100%" className="w-full h-full border-none">
+          {pdfDoc}
+        </PDFViewer>
       </div>
     </div>
   );

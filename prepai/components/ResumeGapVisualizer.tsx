@@ -1,26 +1,45 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 interface Props {
   jobDescription: string;
+  sessionId?: string;
 }
 
-export function ResumeGapVisualizer({ jobDescription }: Props) {
+export interface StarStoryItem {
+  id?: string;
+  competency: string;
+  situation: string;
+  suggestedStory: string;
+}
+
+export function ResumeGapVisualizer({ jobDescription, sessionId }: Props) {
   const [resumeText, setResumeText] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [starStories, setStarStories] = useState<StarStoryItem[]>([]);
   const [result, setResult] = useState<{
     matchPercentage: number;
     confirmedSkills: string[];
     criticalGaps: string[];
     highRiskAreas: string[];
-    tailoredStarStories: {
-      competency: string;
-      situation: string;
-      suggestedStory: string;
-    }[];
+    tailoredStarStories: StarStoryItem[];
   } | null>(null);
+
+  // Load cached STAR stories on mount
+  useEffect(() => {
+    if (typeof window !== "undefined" && sessionId) {
+      try {
+        const cached = localStorage.getItem(`prepai_star_stories_${sessionId}`);
+        if (cached) {
+          setStarStories(JSON.parse(cached));
+        }
+      } catch (err) {
+        // silent cache ignore
+      }
+    }
+  }, [sessionId]);
 
   async function handleAnalyze() {
     if (!resumeText.trim()) return;
@@ -41,12 +60,47 @@ export function ResumeGapVisualizer({ jobDescription }: Props) {
       }
 
       setResult(data);
+      if (Array.isArray(data.tailoredStarStories)) {
+        setStarStories(data.tailoredStarStories);
+        persistStories(data.tailoredStarStories);
+      }
     } catch (err: any) {
       console.error("Resume match error:", err);
       setError(err.message || "Failed to analyze resume gap.");
     } finally {
       setLoading(false);
     }
+  }
+
+  function persistStories(stories: StarStoryItem[]) {
+    setStarStories(stories);
+    if (typeof window !== "undefined" && sessionId) {
+      try {
+        localStorage.setItem(`prepai_star_stories_${sessionId}`, JSON.stringify(stories));
+        fetch("/api/user/star-stories", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sessionId, stories }),
+        }).catch(console.error);
+      } catch (e) {
+        console.warn("STAR stories persistence warning:", e);
+      }
+    }
+  }
+
+  function handleUpdateStory(index: number, updatedText: string) {
+    const updated = [...starStories];
+    updated[index] = { ...updated[index], suggestedStory: updatedText };
+    persistStories(updated);
+  }
+
+  function handleAddCustomStory() {
+    const newStory: StarStoryItem = {
+      competency: "Personal Experience / Project Ownership",
+      situation: "High-stress production environment or key technical decision.",
+      suggestedStory: "In my previous project, I led the migration of high-throughput services...",
+    };
+    persistStories([newStory, ...starStories]);
   }
 
   const scoreColor =
@@ -180,34 +234,48 @@ export function ResumeGapVisualizer({ jobDescription }: Props) {
             </div>
           )}
 
-          {/* Tailored STAR Stories */}
-          {result.tailoredStarStories && result.tailoredStarStories.length > 0 && (
-            <div className="space-y-3 font-mono">
+          {/* Persistent & Editable STAR Stories */}
+          <div className="space-y-3 font-mono">
+            <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-focus uppercase">
                 ✨ Tailored STAR Stories (Bridging Resume to JD Gaps)
               </span>
-              <div className="grid grid-cols-1 gap-3">
-                {result.tailoredStarStories.map((story, idx) => (
-                  <div key={idx} className="bg-paper p-4 rounded-xl border border-slate/10 space-y-2 text-xs">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-focus">{story.competency}</span>
-                      <span className="text-[10px] text-slate uppercase bg-focus/10 text-focus px-2 py-0.5 rounded font-semibold">
-                        STAR Bridge Template
-                      </span>
-                    </div>
-                    <p className="text-slate font-body text-[11px] leading-relaxed">
-                      <strong className="text-ink font-mono font-semibold">Context: </strong>
-                      {story.situation}
-                    </p>
-                    <p className="text-ink font-body leading-relaxed bg-paper-raised p-3 rounded-lg border border-slate/10">
-                      <strong className="text-focus font-mono font-semibold">Suggested Talking Story: </strong>
-                      "{story.suggestedStory}"
-                    </p>
-                  </div>
-                ))}
-              </div>
+              <button
+                onClick={handleAddCustomStory}
+                className="text-[11px] font-mono text-mint hover:underline font-bold"
+              >
+                + Add Personal STAR Story
+              </button>
             </div>
-          )}
+
+            <div className="grid grid-cols-1 gap-3">
+              {starStories.map((story, idx) => (
+                <div key={idx} className="bg-paper p-4 rounded-xl border border-slate/10 space-y-2 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-focus">{story.competency}</span>
+                    <span className="text-[10px] text-slate uppercase bg-focus/10 text-focus px-2 py-0.5 rounded font-semibold">
+                      STAR Bridge Template (Editable)
+                    </span>
+                  </div>
+                  <p className="text-slate font-body text-[11px] leading-relaxed">
+                    <strong className="text-ink font-mono font-semibold">Context: </strong>
+                    {story.situation}
+                  </p>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-mono text-slate uppercase block font-semibold">
+                      Suggested Talking Story (Edit text to save):
+                    </label>
+                    <textarea
+                      value={story.suggestedStory}
+                      onChange={(e) => handleUpdateStory(idx, e.target.value)}
+                      rows={3}
+                      className="w-full bg-paper-raised p-3 rounded-lg border border-slate/20 text-ink font-body text-xs focus:outline-none focus:ring-1 focus:ring-focus leading-relaxed resize-y"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       )}
     </div>

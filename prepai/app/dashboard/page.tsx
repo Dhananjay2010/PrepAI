@@ -21,6 +21,10 @@ export default function DashboardPage() {
   const [paywallOpen, setPaywallOpen] = useState(false);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
 
+  // Bookmarks Filter state
+  const [activeBookmarkRound, setActiveBookmarkRound] = useState<string>("all");
+  const [bookmarkSearch, setBookmarkSearch] = useState<string>("");
+
   // Interview Date state
   const [interviewDate, setInterviewDate] = useState<string>("");
   const [savingDate, setSavingDate] = useState(false);
@@ -264,33 +268,96 @@ export default function DashboardPage() {
         <CountdownCurriculumWidget />
 
         {/* Bookmarked Questions Tab Section */}
-        {bookmarks && bookmarks.length > 0 && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="font-display text-xl font-bold text-ink flex items-center space-x-2">
-                <span className="text-highlight">★</span>
-                <span>Bookmarked Questions ({bookmarks.length})</span>
-              </h2>
-              <span className="font-mono text-xs text-slate">
-                Quick Revision Vault
-              </span>
-            </div>
+        {bookmarks && bookmarks.length > 0 && (() => {
+          const resolveRound = (q: any) => {
+            const cat = (q?.category || "").toLowerCase();
+            const text = ((q?.question || "") + " " + (q?.what_they_test || "")).toLowerCase();
+            if (cat.includes("behavioural") || cat.includes("behavioral") || text.includes("tell me about a time")) return "behavioral";
+            if (cat.includes("system design") || cat.includes("architecture") || text.includes("design a")) return "hld_system_design";
+            if (cat.includes("screening") || text.includes("elevator pitch")) return "screening";
+            return "lld_coding";
+          };
 
-            <div className="grid grid-cols-1 gap-4">
-              {bookmarks.map((b: any, index: number) => (
-                <QuestionCard
-                  key={index}
-                  question={b.question}
-                  userId={user?.id}
-                  isBookmarked={true}
-                  onBookmarkToggle={() => {
-                    setBookmarks((prev) => prev.filter((item) => item.id !== b.id));
-                  }}
+          const filtered = bookmarks.filter((b: any) => {
+            const q = b.question || {};
+            const round = resolveRound(q);
+            if (activeBookmarkRound !== "all" && round !== activeBookmarkRound) return false;
+            if (bookmarkSearch.trim()) {
+              const query = bookmarkSearch.toLowerCase();
+              const matchQ = q.question?.toLowerCase().includes(query);
+              const matchCat = q.category?.toLowerCase().includes(query);
+              if (!matchQ && !matchCat) return false;
+            }
+            return true;
+          });
+
+          return (
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <h2 className="font-display text-xl font-bold text-ink flex items-center space-x-2">
+                  <span className="text-highlight">★</span>
+                  <span>Bookmarked Questions ({bookmarks.length})</span>
+                </h2>
+                <span className="font-mono text-xs text-slate">
+                  Quick Revision Vault
+                </span>
+              </div>
+
+              {/* Round Category Filter Pills & Search Bar */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-paper-raised p-3 rounded-xl border border-slate/10 font-mono text-xs">
+                <div className="flex items-center space-x-1 overflow-x-auto scrollbar-none pb-1 sm:pb-0">
+                  {[
+                    { id: "all", label: "All Bookmarks" },
+                    { id: "screening", label: "Round 1: Screening" },
+                    { id: "lld_coding", label: "Round 2: LLD & Coding" },
+                    { id: "hld_system_design", label: "Round 3: System Design" },
+                    { id: "behavioral", label: "Round 4: Behavioral" },
+                  ].map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveBookmarkRound(tab.id)}
+                      className={`px-2.5 py-1 rounded-md transition-colors whitespace-nowrap ${
+                        activeBookmarkRound === tab.id
+                          ? "bg-focus text-white font-bold"
+                          : "bg-paper text-slate hover:text-ink"
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+
+                <input
+                  type="text"
+                  value={bookmarkSearch}
+                  onChange={(e) => setBookmarkSearch(e.target.value)}
+                  placeholder="🔍 Search bookmarks..."
+                  className="bg-paper border border-slate/20 rounded-lg px-3 py-1 text-xs text-ink focus:outline-none focus:ring-1 focus:ring-focus max-w-xs"
                 />
-              ))}
+              </div>
+
+              <div className="grid grid-cols-1 gap-4">
+                {filtered.map((b: any, index: number) => (
+                  <QuestionCard
+                    key={index}
+                    question={b.question}
+                    userId={user?.id}
+                    isBookmarked={true}
+                    onBookmarkToggle={() => {
+                      setBookmarks((prev) => prev.filter((item) => item.id !== b.id));
+                    }}
+                  />
+                ))}
+
+                {filtered.length === 0 && (
+                  <div className="p-6 text-center bg-paper-raised rounded-xl border border-slate/10 space-y-1 font-mono text-xs text-slate">
+                    <p>No bookmarked questions found matching this filter.</p>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* Sessions History List Section */}
         <div className="space-y-4">

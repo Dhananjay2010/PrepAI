@@ -8,11 +8,12 @@ import {
   supabaseAdmin,
 } from "@/lib/supabase";
 
-const MAX_JD_LENGTH = 8000;
+const MAX_JD_LENGTH = 20000;
 
 export async function POST(req: NextRequest) {
   try {
-    const { jobDescription, userId } = await req.json();
+    const body = await req.json();
+    const { jobDescription, userId, resumeText, targetCompany, targetSeniority } = body;
 
     if (!jobDescription || jobDescription.trim().length < 30) {
       return NextResponse.json(
@@ -23,7 +24,7 @@ export async function POST(req: NextRequest) {
 
     if (jobDescription.length > MAX_JD_LENGTH) {
       return NextResponse.json(
-        { error: "That's too long — try pasting just the role description" },
+        { error: "Job description is too long (max 20,000 characters)" },
         { status: 400 }
       );
     }
@@ -47,7 +48,11 @@ export async function POST(req: NextRequest) {
 
     const questionCount = plan === "paid" ? 20 : 5;
 
-    const result = await generateQuestions(jobDescription, questionCount);
+    const result = await generateQuestions(jobDescription, questionCount, {
+      resumeText,
+      targetCompany,
+      targetSeniority,
+    });
 
     if (result.error === "not_a_job_description") {
       return NextResponse.json(
@@ -66,8 +71,8 @@ export async function POST(req: NextRequest) {
         const payload: any = {
           user_id: userId,
           job_description: jobDescription,
-          role_summary: result.role_summary,
-          seniority: result.seniority,
+          role_summary: targetCompany ? `${targetCompany} - ${result.role_summary}` : result.role_summary,
+          seniority: targetSeniority || result.seniority,
           topics: result.topics,
           questions: result.questions,
         };

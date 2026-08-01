@@ -23,6 +23,11 @@ export function CopilotModal({
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [fontSize, setFontSize] = useState<"normal" | "large">("normal");
 
+  // Generative Copilot state
+  const [customQuery, setCustomQuery] = useState("");
+  const [copilotResponse, setCopilotResponse] = useState<string | null>(null);
+  const [loadingCopilot, setLoadingCopilot] = useState(false);
+
   const filtered = questions.filter((q) => {
     const term = searchTerm.toLowerCase().trim();
     if (!term) return true;
@@ -61,6 +66,35 @@ export function CopilotModal({
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [onClose, filteredCount]);
+
+  async function handleAskCopilot(queryText: string) {
+    if (!queryText.trim()) return;
+    setLoadingCopilot(true);
+    setCopilotResponse(null);
+
+    try {
+      const res = await fetch("/api/copilot", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: queryText,
+          roleSummary,
+          seniority,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setCopilotResponse(data.text);
+      } else {
+        setCopilotResponse(`Error: ${data.error || "Copilot query failed"}`);
+      }
+    } catch (err: any) {
+      setCopilotResponse(`Error: ${err?.message || "Failed to contact Copilot AI"}`);
+    } finally {
+      setLoadingCopilot(false);
+    }
+  }
 
   if (!isOpen) return null;
 
@@ -101,28 +135,48 @@ export function CopilotModal({
         </div>
       </div>
 
-      {/* Instant Search Bar */}
-      <div className="relative">
+      {/* Ask Copilot Generative Input Bar */}
+      <div className="flex items-center space-x-2">
         <input
           id="copilot-search-input"
           type="text"
-          placeholder="Fuzzy search questions, trade-offs, keywords (Cmd+K)..."
-          value={searchTerm}
+          placeholder="Ask Copilot any technical question (e.g. 'Explain ValueTask vs Task in C#')..."
+          value={customQuery}
           onChange={(e) => {
+            setCustomQuery(e.target.value);
             setSearchTerm(e.target.value);
             setSelectedIdx(0);
           }}
-          className="w-full bg-neutral-900 border border-neutral-700 text-white rounded-xl p-3.5 text-xs sm:text-sm focus:outline-none focus:border-emerald-400 placeholder:text-neutral-500 shadow-inner"
+          onKeyDown={(e) => {
+            if (e.key === "Enter") handleAskCopilot(customQuery);
+          }}
+          className="flex-1 bg-neutral-900 border border-neutral-700 text-white rounded-xl p-3.5 text-xs sm:text-sm focus:outline-none focus:border-emerald-400 placeholder:text-neutral-500 shadow-inner"
         />
-        {searchTerm && (
-          <button
-            onClick={() => setSearchTerm("")}
-            className="absolute right-3 top-3 text-xs text-neutral-400 hover:text-white"
-          >
-            Clear
-          </button>
-        )}
+        <button
+          onClick={() => handleAskCopilot(customQuery)}
+          disabled={loadingCopilot || !customQuery.trim()}
+          className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-3 rounded-xl text-xs transition-colors disabled:opacity-50"
+        >
+          {loadingCopilot ? "Thinking..." : "Ask Copilot ✨"}
+        </button>
       </div>
+
+      {/* Copilot Generative AI Answer Output Banner */}
+      {(copilotResponse || loadingCopilot) && (
+        <div className="bg-neutral-900 p-4 rounded-xl border border-emerald-500/40 space-y-2 animate-in fade-in duration-150">
+          <div className="flex items-center justify-between text-xs font-bold text-emerald-400 border-b border-neutral-800 pb-2">
+            <span>✨ Gemini Copilot Generative Answer</span>
+            <button onClick={() => setCopilotResponse(null)} className="text-neutral-500 hover:text-white">
+              ✕ Dismiss
+            </button>
+          </div>
+          {loadingCopilot ? (
+            <div className="text-xs text-neutral-400 animate-pulse">Generating concise spoken answer for your question...</div>
+          ) : (
+            <div className="text-xs text-neutral-200 leading-relaxed whitespace-pre-wrap">{copilotResponse}</div>
+          )}
+        </div>
+      )}
 
       {/* Main Dual Pane Teleprompter View */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1 overflow-hidden">
@@ -154,7 +208,7 @@ export function CopilotModal({
           })}
           {filtered.length === 0 && (
             <div className="text-neutral-500 text-center py-8 text-xs">
-              No matching questions.
+              No matching questions. Type an exact question above to query Copilot.
             </div>
           )}
         </div>
