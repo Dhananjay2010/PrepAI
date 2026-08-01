@@ -12,6 +12,8 @@ import { MockInterviewChat } from "@/components/MockInterviewChat";
 import { GuestLandingPage } from "@/components/GuestLandingPage";
 import { SkeletonHeader, SkeletonHero } from "@/components/Skeletons";
 import { PrintableCheatSheet } from "@/components/PrintableCheatSheet";
+import { TopicBreakdownBar } from "@/components/TopicBreakdownBar";
+import { TopicData } from "@/lib/gemini";
 
 export default function Home() {
   const [user, setUser] = useState<any>(null);
@@ -25,6 +27,7 @@ export default function Home() {
     role_summary?: string;
     seniority?: string;
     key_skills?: string[];
+    topics?: TopicData[];
     questions?: QuestionData[];
     prep_tips?: string[];
     jobDescription?: string;
@@ -288,7 +291,7 @@ export default function Home() {
                 Parsing Tech Stack & Seniority...
               </span>
               <h2 className="font-display text-2xl font-bold text-ink">
-                Generating Tailored Questions
+                Generating Tailored Questions & Topics
               </h2>
             </div>
 
@@ -371,6 +374,14 @@ export default function Home() {
                 </div>
               )}
             </div>
+
+            {/* Topic Breakdown & Self-Assessment Bar */}
+            {generationResult.topics && generationResult.topics.length > 0 && (
+              <TopicBreakdownBar
+                topics={generationResult.topics}
+                questions={generationResult.questions || []}
+              />
+            )}
 
             {/* Mock Interview View Mode vs Question Cards List */}
             {mockMode && generationResult.questions && generationResult.questions.length > 0 ? (

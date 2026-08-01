@@ -9,6 +9,7 @@ import { MockInterviewChat } from "@/components/MockInterviewChat";
 import { PaywallModal } from "@/components/PaywallModal";
 import { SkeletonSessionDetail } from "@/components/Skeletons";
 import { PrintableCheatSheet } from "@/components/PrintableCheatSheet";
+import { TopicBreakdownBar } from "@/components/TopicBreakdownBar";
 
 export default function SessionDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -120,6 +121,22 @@ export default function SessionDetailPage({ params }: { params: Promise<{ id: st
     }
   }
 
+  async function handleAssessmentToggle(topicId: string, status: "strong" | "weak") {
+    if (!user?.id || !session?.id) return;
+    try {
+      const current = session.topic_assessments || {};
+      const updated = { ...current, [topicId]: status };
+      setSession((prev: any) => ({ ...prev, topic_assessments: updated }));
+
+      await supabase
+        .from("sessions")
+        .update({ topic_assessments: updated })
+        .eq("id", session.id);
+    } catch (err) {
+      console.error("Save topic assessment error:", err);
+    }
+  }
+
   if (loading) {
     return (
       <main className="min-h-screen bg-paper text-ink">
@@ -205,6 +222,17 @@ export default function SessionDetailPage({ params }: { params: Promise<{ id: st
             </div>
           </details>
         </div>
+
+        {/* Topic Breakdown & Self-Assessment Bar */}
+        {session.topics && session.topics.length > 0 && (
+          <TopicBreakdownBar
+            topics={session.topics}
+            questions={session.questions || []}
+            sessionId={session.id}
+            assessments={session.topic_assessments || {}}
+            onAssessmentToggle={handleAssessmentToggle}
+          />
+        )}
 
         {/* Mock Interview vs Question List */}
         {mockMode && session.questions && session.questions.length > 0 ? (
