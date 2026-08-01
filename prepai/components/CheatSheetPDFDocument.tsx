@@ -395,7 +395,7 @@ export function CheatSheetPDFDocument({
                 ];
 
             return (
-              <View key={idx} style={styles.questionCard} wrap={false}>
+              <View key={idx} style={styles.questionCard}>
                 <View style={styles.qHeader}>
                   <Text style={styles.qNumBadge}>Q{q.num || idx + 1}</Text>
                   <Text style={styles.categoryBadge}>{q.category}</Text>

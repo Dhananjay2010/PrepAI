@@ -11,7 +11,13 @@ import { PaywallModal } from "@/components/PaywallModal";
 import { SkeletonSessionDetail } from "@/components/Skeletons";
 import { PrintableCheatSheet } from "@/components/PrintableCheatSheet";
 import { TopicBreakdownBar } from "@/components/TopicBreakdownBar";
-import { getOrGenerateTopics } from "@/lib/gemini";
+import { InterviewPipelineTabs, RoundFilter } from "@/components/InterviewPipelineTabs";
+import { CopilotModal } from "@/components/CopilotModal";
+import { ResumeGapVisualizer } from "@/components/ResumeGapVisualizer";
+import { FlashcardReviewModal, FlashcardItem } from "@/components/FlashcardReviewModal";
+import { ReadinessGauge } from "@/components/ReadinessGauge";
+import { getOrGenerateTopics, resolveQuestionRound } from "@/lib/gemini";
+import { computeSessionReadiness } from "@/lib/readiness";
 
 export default function SessionDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -26,6 +32,10 @@ export default function SessionDetailPage({ params }: { params: Promise<{ id: st
   const [mockMode, setMockMode] = useState(false);
   const [paywallOpen, setPaywallOpen] = useState(false);
   const [showCheatSheet, setShowCheatSheet] = useState(false);
+  const [copilotOpen, setCopilotOpen] = useState(false);
+  const [dueFlashcards, setDueFlashcards] = useState<FlashcardItem[]>([]);
+  const [showFlashcardsModal, setShowFlashcardsModal] = useState(false);
+  const [activeRound, setActiveRound] = useState<RoundFilter>("all");
 
   // Get More Questions State
   const [loadingMore, setLoadingMore] = useState(false);
@@ -76,11 +86,18 @@ export default function SessionDetailPage({ params }: { params: Promise<{ id: st
             })();
           }
 
-          // Fetch bookmarks
-          const res = await fetch(`/api/user/bookmarks?userId=${user.id}`);
-          if (res.ok) {
-            const bData = await res.json();
+          // Fetch bookmarks & due flashcards
+          const [bRes, fcRes] = await Promise.all([
+            fetch(`/api/user/bookmarks?userId=${user.id}`),
+            fetch(`/api/flashcards?userId=${user.id}`),
+          ]);
+          if (bRes.ok) {
+            const bData = await bRes.json();
             setBookmarks((bData.bookmarks || []).map((b: any) => b.question?.question));
+          }
+          if (fcRes.ok) {
+            const fcData = await fcRes.json();
+            setDueFlashcards(fcData.dueCards || []);
           }
         }
       } catch (err) {
@@ -185,6 +202,28 @@ export default function SessionDetailPage({ params }: { params: Promise<{ id: st
   }
 
   const topicsList = session.topics || [];
+  const allQuestions = Array.isArray(session.questions) ? session.questions : [];
+
+  const roundCounts: Record<RoundFilter, number> = {
+    all: allQuestions.length,
+    screening: 0,
+    lld_coding: 0,
+    hld_system_design: 0,
+    behavioral: 0,
+  };
+
+  allQuestions.forEach((q: any) => {
+    const info = resolveQuestionRound(q);
+    if (roundCounts[info.round] !== undefined) {
+      roundCounts[info.round]++;
+    }
+  });
+
+  const displayedQuestions = allQuestions.filter((q: any) => {
+    if (activeRound === "all") return true;
+    const info = resolveQuestionRound(q);
+    return info.round === activeRound;
+  });
 
   return (
     <main className="min-h-screen bg-paper text-ink py-12 px-4">
@@ -206,6 +245,33 @@ export default function SessionDetailPage({ params }: { params: Promise<{ id: st
           </span>
         </div>
 
+        {/* Daily SRS Flashcards Banner */}
+        {dueFlashcards.length > 0 && (
+          <div className="bg-focus/10 border border-focus/30 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 font-mono animate-in fade-in duration-200">
+            <div className="flex items-center space-x-2 text-xs">
+              <span className="text-base">⚡</span>
+              <span className="font-bold text-ink">
+                {dueFlashcards.length} SRS Memory Flashcard{dueFlashcards.length > 1 ? "s" : ""} Due For Morning Review!
+              </span>
+            </div>
+            <button
+              onClick={() => setShowFlashcardsModal(true)}
+              className="bg-focus text-white px-4 py-2 rounded-lg text-xs font-bold hover:opacity-90 transition-opacity shadow-sm whitespace-nowrap"
+            >
+              Start 5-Min Morning Flashcard Review &rarr;
+            </button>
+          </div>
+        )}
+
+        {/* Session Readiness Gauge Widget */}
+        <ReadinessGauge
+          score={computeSessionReadiness(session, profile?.current_streak || 0)}
+          interviewDate={profile?.interview_date}
+          roleSummary={session.role_summary}
+          userId={user?.id}
+          onInterviewDateUpdated={(newDate) => setProfile((prev: any) => ({ ...prev, interview_date: newDate }))}
+        />
+
         {/* Role Overview Banner */}
         <div className="bg-paper-raised rounded-2xl p-6 border border-slate/10 shadow-[0_4px_24px_-8px_rgba(28,34,48,0.12)] space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate/10 pb-4">
@@ -219,6 +285,14 @@ export default function SessionDetailPage({ params }: { params: Promise<{ id: st
             </div>
 
             <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-auto">
+              <button
+                onClick={() => setCopilotOpen(true)}
+                className="bg-black text-emerald-400 border border-emerald-500/50 hover:bg-neutral-900 font-mono font-bold px-3.5 py-2 rounded-md transition-all text-xs flex items-center space-x-1.5 shadow-sm"
+              >
+                <span>⚡</span>
+                <span>Live Copilot HUD</span>
+              </button>
+
               <button
                 onClick={() => setShowCheatSheet(true)}
                 className="bg-paper border border-slate/20 hover:border-focus text-ink font-medium px-3.5 py-2 rounded-md transition-all text-xs flex items-center space-x-1.5 shadow-xs"
@@ -259,6 +333,9 @@ export default function SessionDetailPage({ params }: { params: Promise<{ id: st
           />
         )}
 
+        {/* Resume vs Target JD Skill-Gap Analyzer */}
+        <ResumeGapVisualizer jobDescription={session.job_description} />
+
         {/* Mock Interview vs Question List */}
         {mockMode && session.questions && session.questions.length > 0 ? (
           <div className="space-y-4">
@@ -279,23 +356,41 @@ export default function SessionDetailPage({ params }: { params: Promise<{ id: st
           </div>
         ) : (
           <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <h2 className="font-display text-xl font-bold text-ink">
-                Saved Interview Questions ({session.questions?.length || 0})
+                Saved Interview Questions ({allQuestions.length})
               </h2>
+              <span className="font-mono text-xs text-slate">
+                Showing {displayedQuestions.length} of {allQuestions.length} questions
+              </span>
             </div>
 
+            {/* Stage-Aware Interview Pipeline Tabs */}
+            <InterviewPipelineTabs
+              activeRound={activeRound}
+              onSelectRound={setActiveRound}
+              counts={roundCounts}
+            />
+
             <div className="grid grid-cols-1 gap-4">
-              {Array.isArray(session.questions) &&
-                session.questions.map((q: any, index: number) => (
-                  <QuestionCard
-                    key={index}
-                    question={q}
-                    userId={user?.id}
-                    sessionId={session.id}
-                    isBookmarked={bookmarks.includes(q.question)}
-                  />
-                ))}
+              {displayedQuestions.map((q: any, index: number) => (
+                <QuestionCard
+                  key={index}
+                  question={q}
+                  userId={user?.id}
+                  sessionId={session.id}
+                  isBookmarked={bookmarks.includes(q.question)}
+                />
+              ))}
+
+              {displayedQuestions.length === 0 && (
+                <div className="p-8 text-center bg-paper-raised rounded-xl border border-slate/10 space-y-2">
+                  <p className="font-display font-semibold text-ink">No questions found for this round</p>
+                  <p className="font-mono text-xs text-slate">
+                    Try selecting "All Questions" or click "Get More Questions from Gemini" below.
+                  </p>
+                </div>
+              )}
             </div>
 
             {moreError && (
@@ -350,6 +445,23 @@ export default function SessionDetailPage({ params }: { params: Promise<{ id: st
           onClose={() => setShowCheatSheet(false)}
         />
       )}
+
+      {/* Live Copilot HUD Modal View */}
+      <CopilotModal
+        isOpen={copilotOpen}
+        onClose={() => setCopilotOpen(false)}
+        roleSummary={session.role_summary || "Target Role"}
+        seniority={session.seniority || "Engineer"}
+        questions={allQuestions}
+      />
+
+      {/* Flashcard Review Modal View */}
+      <FlashcardReviewModal
+        isOpen={showFlashcardsModal}
+        onClose={() => setShowFlashcardsModal(false)}
+        cards={dueFlashcards}
+        onReviewComplete={() => setDueFlashcards([])}
+      />
 
       <PaywallModal
         isOpen={paywallOpen}

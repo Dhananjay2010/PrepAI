@@ -9,6 +9,8 @@ import { computeReadinessScore } from "@/lib/readiness";
 import { QuestionCard } from "@/components/QuestionCard";
 import { UserNav } from "@/components/UserNav";
 import { SkeletonDashboard } from "@/components/Skeletons";
+import { ReadinessGauge } from "@/components/ReadinessGauge";
+import { CountdownCurriculumWidget } from "@/components/CountdownCurriculumWidget";
 
 export default function DashboardPage() {
   const [user, setUser] = useState<any>(null);
@@ -217,77 +219,17 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Top Metrics Row: Readiness Score & Interview Countdown */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Readiness Score Card */}
-          <div className="bg-paper-raised rounded-xl p-6 border border-slate/10 shadow-[0_4px_24px_-8px_rgba(28,34,48,0.12)] space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="font-mono text-xs font-semibold text-slate uppercase">
-                Overall Readiness Score
-              </span>
-              <span className="font-mono text-xs text-mint font-bold">
-                {readinessScore >= 80 ? "High Preparedness" : readinessScore >= 50 ? "Moderate" : "Building Foundation"}
-              </span>
-            </div>
-            <div className="flex items-baseline space-x-2">
-              <span className="font-display text-5xl font-bold text-mint">
-                {readinessScore}
-              </span>
-              <span className="font-mono text-slate text-sm">/ 100</span>
-            </div>
-            <div className="w-full bg-paper rounded-full h-2.5 overflow-hidden">
-              <div
-                className="bg-mint h-2.5 transition-all duration-500 rounded-full"
-                style={{ width: `${readinessScore}%` }}
-              />
-            </div>
-            <p className="text-xs text-slate font-body">
-              Calculated across {allCategories.length} questions in {new Set(allCategories).size} technical categories.
-            </p>
-          </div>
+        {/* Brick 7: AI Readiness Gauge & Target Interview Countdown */}
+        <ReadinessGauge
+          score={readinessScore}
+          interviewDate={interviewDate}
+          roleSummary={sessions[0]?.role_summary}
+          userId={user?.id}
+          onInterviewDateUpdated={(newDate) => setInterviewDate(newDate)}
+        />
 
-          {/* Interview Countdown Card */}
-          <div className="bg-paper-raised rounded-xl p-6 border border-slate/10 shadow-[0_4px_24px_-8px_rgba(28,34,48,0.12)] space-y-3 flex flex-col justify-between">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="font-mono text-xs font-semibold text-slate uppercase">
-                  Target Interview Countdown
-                </span>
-                <span className="font-mono text-[10px] text-focus uppercase bg-focus/10 px-2 py-0.5 rounded">
-                  Goal Target
-                </span>
-              </div>
-
-              {daysLeft !== null ? (
-                <div className="flex items-baseline space-x-2">
-                  <span className="font-display text-4xl font-bold text-ink">
-                    {daysLeft > 0 ? `${daysLeft} Days` : daysLeft === 0 ? "Today!" : "Passed"}
-                  </span>
-                  <span className="font-mono text-xs text-slate">
-                    ({new Date(interviewDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })})
-                  </span>
-                </div>
-              ) : (
-                <p className="text-xs font-mono text-slate">
-                  No interview date set yet.
-                </p>
-              )}
-            </div>
-
-            <div className="pt-2 border-t border-slate/10 flex items-center space-x-2">
-              <input
-                type="date"
-                value={interviewDate}
-                onChange={(e) => handleSaveInterviewDate(e.target.value)}
-                disabled={savingDate}
-                className="bg-paper border border-slate/20 rounded px-2.5 py-1 text-xs font-mono text-ink focus:outline-none focus:border-focus"
-              />
-              <span className="text-[11px] font-mono text-slate">
-                {savingDate ? "Saving..." : "Set Date"}
-              </span>
-            </div>
-          </div>
-        </div>
+        {/* Brick 7: 7-Day Blitz Daily Curriculum Checklist */}
+        <CountdownCurriculumWidget />
 
         {/* Bookmarked Questions Tab Section */}
         {bookmarks && bookmarks.length > 0 && (

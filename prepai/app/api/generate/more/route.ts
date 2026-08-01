@@ -31,13 +31,35 @@ export async function POST(req: NextRequest) {
     const questionTexts = currentQs.map((q) => q.question || "");
     const startNum = currentQs.length + 1;
 
+    // Fetch session topics if sessionId provided
+    let sessionTopics: any[] = [];
+    if (sessionId) {
+      const { data: sess } = await supabaseAdmin
+        .from("sessions")
+        .select("topics")
+        .eq("id", sessionId)
+        .single();
+      if (sess?.topics && Array.isArray(sess.topics)) {
+        sessionTopics = sess.topics;
+      }
+    }
+
     // Call Gemini to generate 5 more targeted questions
-    const newQuestions = await generateMoreQuestions(
+    const rawNewQuestions = await generateMoreQuestions(
       jobDescription || "",
       questionTexts,
       startNum,
       5
     );
+
+    const newQuestions = rawNewQuestions.map((q: any, idx: number) => {
+      const assignedTopic = sessionTopics.length > 0 ? sessionTopics[idx % sessionTopics.length] : null;
+      return {
+        ...q,
+        topic_id: q.topic_id || assignedTopic?.id || "core-technical",
+        topic_title: q.topic_title || assignedTopic?.title || "Core Technical",
+      };
+    });
 
     const combinedQuestions = [...currentQs, ...newQuestions];
 

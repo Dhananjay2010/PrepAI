@@ -121,16 +121,18 @@ export default function TopicDetailPage({
     );
   }
 
-  // Filter questions for this topic
+  // Robust topic-to-question filtering logic
   const allQuestions = Array.isArray(session.questions) ? session.questions : [];
-  const topicQuestions = allQuestions.filter(
-    (q: any) =>
-      q.topic_id === topicSlug ||
-      q.topic_title?.toLowerCase().replace(/[^a-z0-9]/g, "-") === topicSlug ||
-      q.category?.toLowerCase().includes(topicSlug.split("-")[0])
-  );
+  const slugKeywords = topicSlug.split("-").filter((w) => w.length > 2);
 
-  const displayQuestions = topicQuestions.length > 0 ? topicQuestions : allQuestions.slice(0, 3);
+  const displayQuestions = allQuestions.filter((q: any) => {
+    if (q.topic_id === topicSlug) return true;
+    if (q.topic_title && q.topic_title.toLowerCase().replace(/[^a-z0-9]/g, "-") === topicSlug) return true;
+
+    // Fuzzy keyword matching against question content
+    const textToSearch = `${q.question || ""} ${q.category || ""} ${q.what_they_test || ""} ${q.strong_answer_outline || ""}`.toLowerCase();
+    return slugKeywords.some((keyword) => textToSearch.includes(keyword));
+  });
 
   return (
     <main className="min-h-screen bg-paper text-ink py-12 px-4">

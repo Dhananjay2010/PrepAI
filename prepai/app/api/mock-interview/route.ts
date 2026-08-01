@@ -4,7 +4,7 @@ import { getUserPlan } from "@/lib/supabase";
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId, roleSummary, currentQuestion, candidateAnswer } = await req.json();
+    const { userId, roleSummary, currentQuestion, candidateAnswer, persona, history } = await req.json();
 
     const effectiveUserId = userId || "guest_dev_user";
 
@@ -30,7 +30,9 @@ export async function POST(req: NextRequest) {
     const result = await mockInterviewTurn(
       roleSummary || "Software Engineer",
       currentQuestion,
-      candidateAnswer
+      candidateAnswer,
+      persona || "skeptical_architect",
+      history || []
     );
 
     return NextResponse.json(result);

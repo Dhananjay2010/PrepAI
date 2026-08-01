@@ -32,8 +32,11 @@ create table if not exists sessions (
   role_summary text,
   seniority text,
   questions jsonb not null,
+  interview_rounds jsonb,
   created_at timestamp default now()
 );
+
+alter table sessions add column if not exists interview_rounds jsonb;
 
 -- 3. Payments Table (Razorpay subscription payment log)
 create table if not exists payments (
@@ -103,3 +106,35 @@ create policy "Users can insert own bookmarks" on bookmarks
 
 create policy "Users can delete own bookmarks" on bookmarks
   for delete using (auth.uid() = user_id);
+
+-- 6. Mock Conversations Table (multi-turn voice practice log)
+create table if not exists mock_conversations (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references profiles(id) on delete cascade,
+  session_id uuid references sessions(id) on delete cascade,
+  persona text default 'skeptical_architect',
+  messages jsonb not null,
+  overall_score int,
+  feedback_summary jsonb,
+  created_at timestamp default now()
+);
+
+alter table mock_conversations enable row level security;
+create policy "Users can view own mock conversations" on mock_conversations for select using (auth.uid() = user_id);
+create policy "Users can insert own mock conversations" on mock_conversations for insert with check (auth.uid() = user_id);
+
+-- 7. Spaced Repetition (SRS Flashcards) Table
+create table if not exists flashcards (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references profiles(id) on delete cascade,
+  session_id uuid references sessions(id) on delete cascade,
+  question_text text not null,
+  answer_text text not null,
+  box int default 1 check (box between 1 and 5),
+  next_review_date date default current_date,
+  created_at timestamp default now(),
+  unique(user_id, question_text)
+);
+
+alter table flashcards enable row level security;
+create policy "Users can manage own flashcards" on flashcards for all using (auth.uid() = user_id);

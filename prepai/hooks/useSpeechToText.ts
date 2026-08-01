@@ -48,8 +48,12 @@ export function useSpeechToText() {
         setTranscript("");
         recognitionRef.current.start();
         setIsListening(true);
-      } catch (err) {
-        console.error("Failed to start speech recognition:", err);
+      } catch (err: any) {
+        if (err?.name === "InvalidStateError" || err?.message?.includes("already started")) {
+          setIsListening(true);
+        } else {
+          console.error("Failed to start speech recognition:", err);
+        }
       }
     }
   }, [isListening]);
