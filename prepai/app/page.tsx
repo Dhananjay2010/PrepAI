@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 import { JDInput } from "@/components/JDInput";
@@ -16,6 +17,7 @@ import { TopicBreakdownBar } from "@/components/TopicBreakdownBar";
 import { TopicData } from "@/lib/gemini";
 
 export default function Home() {
+  const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
@@ -24,6 +26,7 @@ export default function Home() {
 
   // Generation Results State
   const [generationResult, setGenerationResult] = useState<{
+    sessionId?: string;
     role_summary?: string;
     seniority?: string;
     key_skills?: string[];
@@ -120,6 +123,8 @@ export default function Home() {
   function handleStartMockMode() {
     if (!isPaid) {
       setPaywallOpen(true);
+    } else if (generationResult?.sessionId) {
+      router.push(`/dashboard/${generationResult.sessionId}/mock`);
     } else {
       setMockMode(true);
     }
@@ -382,6 +387,7 @@ export default function Home() {
               <TopicBreakdownBar
                 topics={generationResult.topics}
                 questions={generationResult.questions || []}
+                sessionId={generationResult.sessionId}
               />
             )}
 
@@ -426,6 +432,7 @@ export default function Home() {
                       key={index}
                       question={q}
                       userId={user?.id}
+                      sessionId={generationResult.sessionId}
                       isBookmarked={bookmarks.includes(q.question)}
                     />
                   ))}

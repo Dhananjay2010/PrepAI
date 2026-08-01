@@ -2,6 +2,7 @@
 
 import { useEffect, useState, use } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 import { QuestionCard } from "@/components/QuestionCard";
@@ -15,6 +16,7 @@ import { getOrGenerateTopics } from "@/lib/gemini";
 export default function SessionDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const sessionId = resolvedParams.id;
+  const router = useRouter();
 
   const [session, setSession] = useState<any>(null);
   const [user, setUser] = useState<any>(null);
@@ -95,7 +97,7 @@ export default function SessionDetailPage({ params }: { params: Promise<{ id: st
     if (!isPaid) {
       setPaywallOpen(true);
     } else {
-      setMockMode(true);
+      router.push(`/dashboard/${sessionId}/mock`);
     }
   }
 

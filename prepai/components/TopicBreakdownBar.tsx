@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { TopicData } from "@/lib/gemini";
 
@@ -22,9 +22,15 @@ export function TopicBreakdownBar({
   const [localAssessments, setLocalAssessments] = useState<Record<string, "strong" | "weak">>(assessments);
   const [selectedTopic, setSelectedTopic] = useState<TopicData | null>(null);
 
+  useEffect(() => {
+    if (assessments) {
+      setLocalAssessments(assessments);
+    }
+  }, [assessments]);
+
   if (!topics || topics.length === 0) return null;
 
-  const handleToggle = (topicId: string, status: "strong" | "weak") => {
+  const handleToggle = async (topicId: string, status: "strong" | "weak") => {
     const current = localAssessments[topicId];
     const newStatus = current === status ? (status === "strong" ? "weak" : "strong") : status;
     const updated = { ...localAssessments, [topicId]: newStatus };
@@ -32,6 +38,23 @@ export function TopicBreakdownBar({
 
     if (onAssessmentToggle) {
       onAssessmentToggle(topicId, newStatus);
+    }
+
+    // Persist to database if sessionId is present so it survives hard refreshes
+    if (sessionId) {
+      try {
+        await fetch("/api/user/topic-assessment", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sessionId,
+            topicId,
+            status: newStatus,
+          }),
+        });
+      } catch (err) {
+        console.error("Failed to save topic assessment to DB:", err);
+      }
     }
   };
 
