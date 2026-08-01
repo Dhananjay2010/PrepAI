@@ -45,14 +45,46 @@ export default function DashboardPage() {
             setInterviewDate(prof.interview_date);
           }
 
-          // Fetch sessions
-          const { data: sessData } = await supabase
-            .from("sessions")
-            .select("*")
-            .eq("user_id", user.id)
-            .order("created_at", { ascending: false });
+          // Fetch sessions via robust server API route with fallback
+          let fetchedSessions: any[] = [];
+          try {
+            const sessRes = await fetch(`/api/user/sessions?userId=${user.id}`);
+            if (sessRes.ok) {
+              const sessJson = await sessRes.json();
+              fetchedSessions = sessJson.sessions || [];
+            }
+          } catch (fetchErr) {
+            console.warn("Server API fetch warning, trying client fallback:", fetchErr);
+          }
 
-          setSessions(sessData || []);
+          if (fetchedSessions.length === 0) {
+            const { data: sessData } = await supabase
+              .from("sessions")
+              .select("*")
+              .eq("user_id", user.id)
+              .order("created_at", { ascending: false });
+            fetchedSessions = sessData || [];
+          }
+
+          // Check localStorage client cache as additional safety fallback
+          if (typeof window !== "undefined") {
+            try {
+              const localCacheStr = localStorage.getItem("prepai_saved_sessions");
+              if (localCacheStr) {
+                const localCache = JSON.parse(localCacheStr);
+                const existingIds = new Set(fetchedSessions.map((s) => s.id));
+                localCache.forEach((localSess: any) => {
+                  if (localSess.id && !existingIds.has(localSess.id)) {
+                    fetchedSessions.push(localSess);
+                  }
+                });
+              }
+            } catch (cacheErr) {
+              // silent local cache parse ignore
+            }
+          }
+
+          setSessions(fetchedSessions);
 
           // Fetch bookmarks
           const res = await fetch(`/api/user/bookmarks?userId=${user.id}`);

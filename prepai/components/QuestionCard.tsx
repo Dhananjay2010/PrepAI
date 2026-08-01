@@ -84,6 +84,8 @@ export function QuestionCard({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [paywallOpen, setPaywallOpen] = useState(false);
 
+  const preciseAnswerPropStr = JSON.stringify(question.precise_answer);
+
   // Auto-check if a saved precise answer exists in database on mount or props change
   useEffect(() => {
     let isMounted = true;
@@ -116,7 +118,7 @@ export function QuestionCard({
     return () => {
       isMounted = false;
     };
-  }, [userId, question.question, question.precise_answer]);
+  }, [userId, question.question, preciseAnswerPropStr]);
 
   const difficultyDotColor =
     question.difficulty?.toLowerCase() === "easy"

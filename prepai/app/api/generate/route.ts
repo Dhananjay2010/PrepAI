@@ -61,18 +61,38 @@ export async function POST(req: NextRequest) {
     // Save session server-side for logged in users and return sessionId
     if (userId) {
       try {
-        const { data: sessData } = await supabaseAdmin
+        await ensureUserProfile(userId);
+
+        const payload: any = {
+          user_id: userId,
+          job_description: jobDescription,
+          role_summary: result.role_summary,
+          seniority: result.seniority,
+          topics: result.topics,
+          questions: result.questions,
+        };
+
+        let { data: sessData, error: sessErr } = await supabaseAdmin
           .from("sessions")
-          .insert({
-            user_id: userId,
-            job_description: jobDescription,
-            role_summary: result.role_summary,
-            seniority: result.seniority,
-            topics: result.topics,
-            questions: result.questions,
-          })
+          .insert(payload)
           .select("id")
           .single();
+
+        // Fallback: If 'topics' column is missing in Supabase DB schema, retry without 'topics'
+        if (sessErr && (sessErr.message?.includes("topics") || sessErr.code === "PGRST204" || sessErr.code === "42703")) {
+          delete payload.topics;
+          const retryRes = await supabaseAdmin
+            .from("sessions")
+            .insert(payload)
+            .select("id")
+            .single();
+          sessData = retryRes.data;
+          sessErr = retryRes.error;
+        }
+
+        if (sessErr) {
+          console.error("Server-side session save error:", sessErr);
+        }
 
         if (sessData?.id) {
           savedSessionId = sessData.id;

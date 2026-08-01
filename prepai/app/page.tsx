@@ -112,6 +112,28 @@ export default function Home() {
         ...data,
         jobDescription,
       });
+
+      // Save to client-side localStorage sessions cache for instant Dashboard display
+      if (typeof window !== "undefined" && data) {
+        try {
+          const newSessObj = {
+            id: data.sessionId || `session_${Date.now()}`,
+            user_id: user?.id,
+            job_description: jobDescription,
+            role_summary: data.role_summary,
+            seniority: data.seniority,
+            topics: data.topics,
+            questions: data.questions,
+            created_at: new Date().toISOString(),
+          };
+          const existingStr = localStorage.getItem("prepai_saved_sessions");
+          const existingList = existingStr ? JSON.parse(existingStr) : [];
+          const updatedList = [newSessObj, ...existingList.filter((s: any) => s.id !== newSessObj.id)];
+          localStorage.setItem("prepai_saved_sessions", JSON.stringify(updatedList.slice(0, 20)));
+        } catch (cacheErr) {
+          console.warn("Client session cache warning:", cacheErr);
+        }
+      }
     } catch (err: any) {
       console.error("Generation error:", err);
       setError(err.message || "Failed to generate interview questions. Please try again.");

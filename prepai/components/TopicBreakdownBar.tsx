@@ -22,6 +22,8 @@ export function TopicBreakdownBar({
   const [localAssessments, setLocalAssessments] = useState<Record<string, "strong" | "weak">>(assessments);
   const [selectedTopic, setSelectedTopic] = useState<TopicData | null>(null);
 
+  const assessmentsStr = JSON.stringify(assessments);
+
   // Restore persistent topic assessments from props AND localStorage on mount / reload
   useEffect(() => {
     let merged = { ...assessments };
@@ -38,7 +40,7 @@ export function TopicBreakdownBar({
       }
     }
     setLocalAssessments(merged);
-  }, [sessionId, assessments]);
+  }, [sessionId, assessmentsStr]);
 
   if (!topics || topics.length === 0) return null;
 
