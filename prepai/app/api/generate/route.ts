@@ -56,25 +56,38 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Fire DB session insertion and streak updating asynchronously without delaying candidate response
+    let savedSessionId: string | undefined = undefined;
+
+    // Save session server-side for logged in users and return sessionId
     if (userId) {
-      (async () => {
-        try {
-          await supabaseAdmin.from("sessions").insert({
+      try {
+        const { data: sessData } = await supabaseAdmin
+          .from("sessions")
+          .insert({
             user_id: userId,
             job_description: jobDescription,
             role_summary: result.role_summary,
             seniority: result.seniority,
+            topics: result.topics,
             questions: result.questions,
-          });
-          await updateStreak(userId);
-        } catch (saveErr) {
-          console.error("Async server-side session save warning:", saveErr);
+          })
+          .select("id")
+          .single();
+
+        if (sessData?.id) {
+          savedSessionId = sessData.id;
         }
-      })();
+
+        updateStreak(userId).catch(console.error);
+      } catch (saveErr) {
+        console.error("Server-side session save warning:", saveErr);
+      }
     }
 
-    return NextResponse.json(result);
+    return NextResponse.json({
+      ...result,
+      sessionId: savedSessionId,
+    });
   } catch (err: any) {
     console.error("Gemini generation error:", err);
     return NextResponse.json(
