@@ -5,12 +5,58 @@ import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
 import { LoginButton } from "@/components/LoginButton";
 import { PaywallModal } from "@/components/PaywallModal";
+import { JDInput } from "@/components/JDInput";
+import { QuestionCard } from "@/components/QuestionCard";
 
 export function GuestLandingPage() {
   const shouldReduceMotion = useReducedMotion();
   const [paywallOpen, setPaywallOpen] = useState(false);
   const [activeDemoTab, setActiveDemoTab] = useState<"backend" | "fullstack" | "devops">("backend");
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
+
+  // Guest Playground Live Generation State
+  const [guestLoading, setGuestLoading] = useState(false);
+  const [guestError, setGuestError] = useState<string | null>(null);
+  const [guestResult, setGuestResult] = useState<{
+    role_summary?: string;
+    seniority?: string;
+    key_skills?: string[];
+    topics?: any[];
+    questions?: any[];
+  } | null>(null);
+
+  async function handleGuestGenerate(dataInput: any) {
+    const jobDescription = typeof dataInput === "string" ? dataInput : dataInput.jobDescription;
+    const targetCompany = typeof dataInput === "object" ? dataInput.targetCompany : undefined;
+    const targetSeniority = typeof dataInput === "object" ? dataInput.targetSeniority : undefined;
+
+    try {
+      setGuestLoading(true);
+      setGuestError(null);
+
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jobDescription,
+          targetCompany,
+          targetSeniority,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to generate preview questions.");
+      }
+
+      setGuestResult(data);
+    } catch (err: any) {
+      console.error("Guest playground error:", err);
+      setGuestError(err.message || "Failed to generate preview questions. Please try again.");
+    } finally {
+      setGuestLoading(false);
+    }
+  }
 
   const sampleRoles = {
     backend: {
@@ -44,13 +90,6 @@ export function GuestLandingPage() {
 
   const currentDemo = sampleRoles[activeDemoTab];
 
-  const floatingBadges = [
-    { text: "React 19", x: -180, y: -40, delay: 0 },
-    { text: "PostgreSQL", x: 190, y: -50, delay: 0.2 },
-    { text: "System Design", x: -200, y: 80, delay: 0.4 },
-    { text: "Docker & K8s", x: 180, y: 90, delay: 0.6 },
-  ];
-
   const faqs = [
     {
       q: "Do I need a credit card to sign up for the free tier?",
@@ -83,6 +122,9 @@ export function GuestLandingPage() {
           </Link>
 
           <div className="hidden md:flex items-center space-x-8 text-sm font-body text-slate font-medium">
+            <a href="#playground" className="hover:text-ink transition-colors font-bold text-focus">
+              Instant Playground
+            </a>
             <a href="#benefits" className="hover:text-ink transition-colors">
               Benefits
             </a>
@@ -103,139 +145,122 @@ export function GuestLandingPage() {
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <section className="relative pt-12 pb-20 px-4 overflow-hidden">
-        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          {/* Left Column: Headlines & CTAs */}
+      {/* Hero Section & Instant Unauthenticated Playground */}
+      <section id="playground" className="relative pt-10 pb-16 px-4 overflow-hidden">
+        <div className="max-w-6xl mx-auto space-y-12">
+          {/* Headlines */}
           <motion.div
             initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="space-y-6 text-left"
+            className="text-center space-y-4 max-w-3xl mx-auto"
           >
-            <div className="inline-flex items-center space-x-2 bg-focus/10 border border-focus/20 px-3 py-1 rounded-full">
-              <span className="w-2 h-2 rounded-full bg-mint animate-pulse" />
-              <span className="font-mono text-xs font-semibold text-focus uppercase tracking-wide">
-                AI Technical Interview Preparation
+            <div className="inline-flex items-center space-x-2 bg-focus/10 border border-focus/20 px-3.5 py-1.5 rounded-full">
+              <span className="w-2.5 h-2.5 rounded-full bg-mint animate-pulse" />
+              <span className="font-mono text-xs font-bold text-focus uppercase tracking-wide">
+                Session 1 • Instant Playground (No Sign-In Required)
               </span>
             </div>
 
             <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-bold text-ink leading-tight tracking-tight">
-              Stop guessing. Walk into your interview feeling ready.
+              Test your target Job Description right now.
             </h1>
 
-            <p className="font-body text-slate text-base sm:text-lg leading-relaxed max-w-xl">
-              Paste any job description. PrepAI analyzes the exact tech stack, seniority level, model answers, and red flags you will face — in seconds.
+            <p className="font-body text-slate text-base sm:text-lg leading-relaxed">
+              Paste any job posting or select a sample preset below to see tailored interview questions, technical trade-offs, and spoken model answers extracted in real-time.
             </p>
-
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 pt-2">
-              <LoginButton label="Try PrepAI Free →" className="bg-focus text-white font-medium px-8 py-4 rounded-xl hover:opacity-90 transition-all text-base shadow-lg shadow-focus/25 flex items-center justify-center space-x-2" />
-
-              <a
-                href="#pricing"
-                className="border border-slate/20 bg-paper-raised text-ink hover:bg-paper font-medium px-6 py-4 rounded-xl transition-colors text-base text-center"
-              >
-                View Plans & Pricing
-              </a>
-            </div>
-
-            {/* High-Trust Conversion Badges */}
-            <div className="flex flex-wrap items-center gap-4 text-xs font-mono text-slate/80 pt-2 border-t border-slate/10">
-              <span className="flex items-center space-x-1">
-                <span className="text-mint font-bold">✓</span>
-                <span>No Credit Card Required</span>
-              </span>
-              <span className="flex items-center space-x-1">
-                <span className="text-mint font-bold">✓</span>
-                <span>1 Free Session Every Day</span>
-              </span>
-              <span className="flex items-center space-x-1">
-                <span className="text-mint font-bold">🔒</span>
-                <span>100% Private & Confidential</span>
-              </span>
-            </div>
           </motion.div>
 
-          {/* Right Column: Animated Hero Graphic */}
-          <motion.div
-            initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.7, delay: 0.1 }}
-            className="relative"
-          >
-            {/* Background Glow */}
-            <div className="absolute -inset-4 bg-gradient-to-r from-focus/15 via-mint/15 to-highlight/20 rounded-3xl blur-2xl opacity-70 pointer-events-none" />
+          {/* Playground JD Input Form */}
+          <div className="max-w-4xl mx-auto bg-paper-raised rounded-2xl p-6 sm:p-8 border border-slate/15 shadow-[0_8px_32px_-12px_rgba(28,34,48,0.15)] space-y-6">
+            <div className="flex items-center justify-between border-b border-slate/10 pb-3">
+              <span className="font-mono text-xs font-bold text-focus uppercase">
+                ⚡ Instant Value-First Playground
+              </span>
+              <span className="font-mono text-xs text-mint font-semibold">
+                ✓ No Credit Card • No Sign-up Barrier
+              </span>
+            </div>
 
-            {/* Main Interactive Hero Card */}
-            <div className="relative bg-paper-raised rounded-2xl p-6 border border-slate/15 shadow-[0_8px_32px_-12px_rgba(28,34,48,0.2)] space-y-4 overflow-hidden min-h-[420px] flex flex-col justify-between">
-              {/* Sweeping Scanner Beam */}
-              <motion.div
-                initial={{ x: "-100%" }}
-                animate={{ x: "200%" }}
-                transition={{ repeat: Infinity, duration: 4, ease: "linear" }}
-                className="absolute inset-y-0 w-32 bg-gradient-to-r from-transparent via-highlight/40 to-transparent pointer-events-none z-20"
-              />
+            <JDInput onGenerate={handleGuestGenerate} loading={guestLoading} />
 
-              <div className="space-y-4 relative z-10">
-                <div className="flex items-center justify-between border-b border-slate/10 pb-3">
-                  <span className="font-mono text-xs font-semibold text-slate uppercase">
-                    Job Description Scanner
+            {guestError && (
+              <div className="p-4 bg-coral/10 border border-coral/20 text-coral text-xs rounded-xl font-mono">
+                {guestError}
+              </div>
+            )}
+          </div>
+
+          {/* Instant Guest Live Preview Result */}
+          {guestResult && !guestLoading && (
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="max-w-4xl mx-auto space-y-6 bg-paper-raised rounded-2xl p-6 sm:p-8 border-2 border-mint/40 shadow-xl"
+            >
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate/10 pb-4">
+                <div>
+                  <span className="font-mono text-xs font-bold text-focus bg-focus/10 px-2.5 py-1 rounded uppercase">
+                    {guestResult.seniority || "Senior Engineer"}
                   </span>
-                  <span className="font-mono text-xs font-bold text-mint uppercase bg-mint/10 px-2 py-0.5 rounded">
-                    Senior Architect Mode
-                  </span>
+                  <h3 className="font-display text-2xl font-bold text-ink mt-2">
+                    {guestResult.role_summary || "Target Role Extraction"}
+                  </h3>
                 </div>
 
-                <div className="space-y-3">
-                  <div className="bg-paper p-4 rounded-xl border border-slate/10 space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <span className="font-mono text-[11px] font-bold text-focus uppercase">
-                        SYSTEM DESIGN • HARD
-                      </span>
-                      <span className="w-2 h-2 rounded-full bg-coral animate-ping" />
-                    </div>
-                    <p className="font-body text-xs font-medium text-ink leading-relaxed">
-                      "How do you design a zero-downtime database migration for a microservices cluster handling 50k req/sec?"
-                    </p>
-                  </div>
-
-                  <div className="bg-paper p-4 rounded-xl border border-slate/10 space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <span className="font-mono text-[11px] font-bold text-mint uppercase">
-                        MODEL ANSWER READY
-                      </span>
-                      <span className="w-2 h-2 rounded-full bg-mint" />
-                    </div>
-                    <p className="font-body text-xs text-slate line-clamp-2">
-                      "Executive Summary: Use the Strangler Fig pattern combined with dual-writing & Change Data Capture..."
-                    </p>
-                  </div>
+                <div className="flex items-center space-x-2">
+                  <span className="font-mono text-xs bg-mint/15 text-mint font-bold px-3 py-1.5 rounded-full">
+                    ✨ Live AI Playground Output
+                  </span>
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-slate/10 relative z-10 flex items-center justify-between">
-                <span className="font-mono text-xs text-slate">✨ Gemini AI Extraction</span>
-                <span className="font-mono text-xs font-bold text-focus">100% Tailored</span>
-              </div>
-            </div>
+              {/* Key Skills Tags */}
+              {guestResult.key_skills && guestResult.key_skills.length > 0 && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-mono text-xs text-slate font-semibold">Extracted Stack:</span>
+                  {guestResult.key_skills.map((skill: string, idx: number) => (
+                    <span
+                      key={idx}
+                      className="font-mono text-xs bg-paper text-ink px-2.5 py-1 rounded border border-slate/10"
+                    >
+                      {skill}
+                    </span>
+                  ))}
+                </div>
+              )}
 
-            {/* Floating Tech Chips around Hero Card */}
-            {!shouldReduceMotion &&
-              floatingBadges.map((badge, idx) => (
-                <motion.div
-                  key={idx}
-                  animate={{ y: [-5, 5, -5] }}
-                  transition={{ repeat: Infinity, duration: 3.5, delay: badge.delay, ease: "easeInOut" }}
-                  className="hidden md:block absolute bg-paper border border-slate/20 shadow-md font-mono text-[11px] font-semibold text-ink px-3 py-1.5 rounded-full pointer-events-none z-30"
-                  style={{
-                    top: idx < 2 ? "15%" : "75%",
-                    left: idx % 2 === 0 ? "5%" : "75%",
-                  }}
-                >
-                  ✨ {badge.text}
-                </motion.div>
-              ))}
-          </motion.div>
+              {/* Question 1 & 2 Interactive Cards */}
+              <div className="space-y-4 pt-2">
+                <h4 className="font-mono text-xs font-bold text-slate uppercase tracking-wider">
+                  Unlocked Tailored Preview Questions (2 of {guestResult.questions?.length || 5})
+                </h4>
+
+                {guestResult.questions?.slice(0, 2).map((q: any, idx: number) => (
+                  <QuestionCard key={idx} question={q} />
+                ))}
+              </div>
+
+              {/* Blurred Conversion Lock Banner for Remaining Questions */}
+              <div className="relative rounded-2xl border-2 border-dashed border-focus/40 bg-gradient-to-r from-focus/5 via-mint/5 to-highlight/10 p-8 text-center space-y-4 overflow-hidden">
+                <div className="max-w-xl mx-auto space-y-2 relative z-10">
+                  <span className="font-mono text-xs font-bold uppercase text-focus bg-focus/10 px-3 py-1 rounded-full">
+                    🔒 Lock Full 20-Question Session
+                  </span>
+                  <h4 className="font-display text-2xl font-bold text-ink">
+                    Unlock Live AI Mock Practice, PDF Export & All 20 Questions
+                  </h4>
+                  <p className="font-body text-slate text-xs sm:text-sm">
+                    Sign in with Google in 5 seconds (100% Free) to save this prep kit, run spoken voice mocks, and access complete model answers.
+                  </p>
+
+                  <div className="pt-3 flex justify-center">
+                    <LoginButton label="Sign In with Google (Free) to Unlock →" className="bg-focus text-white font-medium px-8 py-3.5 rounded-xl hover:opacity-90 transition-opacity text-sm shadow-md" />
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
         </div>
       </section>
 

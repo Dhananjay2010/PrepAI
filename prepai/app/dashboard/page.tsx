@@ -11,6 +11,9 @@ import { UserNav } from "@/components/UserNav";
 import { SkeletonDashboard } from "@/components/Skeletons";
 import { ReadinessGauge } from "@/components/ReadinessGauge";
 import { CountdownCurriculumWidget } from "@/components/CountdownCurriculumWidget";
+import { DailyHeroDockWidget } from "@/components/DailyHeroDockWidget";
+import { NextBestActionWidget } from "@/components/NextBestActionWidget";
+import { FlashcardReviewModal, FlashcardItem } from "@/components/FlashcardReviewModal";
 
 export default function DashboardPage() {
   const [user, setUser] = useState<any>(null);
@@ -28,6 +31,10 @@ export default function DashboardPage() {
   // Interview Date state
   const [interviewDate, setInterviewDate] = useState<string>("");
   const [savingDate, setSavingDate] = useState(false);
+
+  // SRS Flashcard Review state
+  const [dueFlashcards, setDueFlashcards] = useState<FlashcardItem[]>([]);
+  const [showFlashcardsModal, setShowFlashcardsModal] = useState(false);
 
   useEffect(() => {
     async function loadUserData() {
@@ -90,11 +97,18 @@ export default function DashboardPage() {
 
           setSessions(fetchedSessions);
 
-          // Fetch bookmarks
-          const res = await fetch(`/api/user/bookmarks?userId=${user.id}`);
-          if (res.ok) {
-            const bData = await res.json();
+          // Fetch bookmarks & due flashcards in parallel
+          const [bRes, fcRes] = await Promise.all([
+            fetch(`/api/user/bookmarks?userId=${user.id}`),
+            fetch(`/api/flashcards?userId=${user.id}`),
+          ]);
+          if (bRes.ok) {
+            const bData = await bRes.json();
             setBookmarks(bData.bookmarks || []);
+          }
+          if (fcRes.ok) {
+            const fcData = await fcRes.json();
+            setDueFlashcards(fcData.dueCards || []);
           }
         }
       } catch (err) {
@@ -254,6 +268,31 @@ export default function DashboardPage() {
             </button>
           </div>
         )}
+
+        {/* Session 2 Habit Loop: Returning User Daily Hero Dock */}
+        <DailyHeroDockWidget
+          streakDays={profile?.current_streak || 1}
+          interviewDate={interviewDate}
+          dueFlashcardsCount={dueFlashcards.length}
+          unmasteredTopicsCount={allCategories.length > 0 ? 3 : 0}
+          recentSessionId={sessions[0]?.id}
+          recentRoleSummary={sessions[0]?.role_summary}
+          onStartFlashcardReview={() => setShowFlashcardsModal(true)}
+        />
+
+        {/* Cognitive Load Reduction: Next Best Action Engine */}
+        <NextBestActionWidget
+          interviewDate={interviewDate}
+          roleSummary={sessions[0]?.role_summary}
+          questions={sessions.flatMap((s) => s.questions || [])}
+          onSelectAction={(actionType) => {
+            if (sessions[0]?.id) {
+              window.location.href = `/dashboard/${sessions[0].id}`;
+            } else {
+              window.location.href = "/";
+            }
+          }}
+        />
 
         {/* Brick 7: AI Readiness Gauge & Target Interview Countdown */}
         <ReadinessGauge
@@ -483,6 +522,13 @@ export default function DashboardPage() {
           </div>
         </div>
       </motion.div>
+
+      <FlashcardReviewModal
+        isOpen={showFlashcardsModal}
+        onClose={() => setShowFlashcardsModal(false)}
+        cards={dueFlashcards}
+        onReviewComplete={() => setDueFlashcards([])}
+      />
 
       <PaywallModal
         isOpen={paywallOpen}

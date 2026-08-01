@@ -16,6 +16,7 @@ import { CopilotModal } from "@/components/CopilotModal";
 import { ResumeGapVisualizer } from "@/components/ResumeGapVisualizer";
 import { FlashcardReviewModal, FlashcardItem } from "@/components/FlashcardReviewModal";
 import { ReadinessGauge } from "@/components/ReadinessGauge";
+import { NextBestActionWidget } from "@/components/NextBestActionWidget";
 import { getOrGenerateTopics, resolveQuestionRound } from "@/lib/gemini";
 import { computeSessionReadiness } from "@/lib/readiness";
 
@@ -267,6 +268,24 @@ export default function SessionDetailPage({ params }: { params: Promise<{ id: st
             </button>
           </div>
         )}
+
+        {/* Cognitive Load Reduction: Next Best Action Engine */}
+        <NextBestActionWidget
+          interviewDate={profile?.interview_date}
+          roleSummary={session.role_summary}
+          questions={allQuestions}
+          onSelectAction={(actionType) => {
+            if (actionType === "mock") {
+              handleStartMockMode();
+            } else if (actionType === "system_design") {
+              setActiveRound("hld_system_design");
+            } else if (actionType === "coding") {
+              setActiveRound("lld_coding");
+            } else if (actionType === "behavioral") {
+              setActiveRound("behavioral");
+            }
+          }}
+        />
 
         {/* Session Readiness Gauge Widget */}
         <ReadinessGauge
