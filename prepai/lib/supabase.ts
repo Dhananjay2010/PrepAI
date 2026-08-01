@@ -31,7 +31,7 @@ export async function ensureUserProfile(userId: string) {
       await supabaseAdmin.from("profiles").upsert({
         id: userId,
         email,
-        plan: "free",
+        plan: process.env.NODE_ENV === "development" ? "paid" : "free",
         free_generations_today: 0,
       });
     }
@@ -43,6 +43,11 @@ export async function ensureUserProfile(userId: string) {
 }
 
 export async function getUserPlan(userId: string): Promise<"free" | "paid"> {
+  // Local Development Override: Always grant PRO status in dev environment for full feature testing!
+  if (process.env.NODE_ENV === "development") {
+    return "paid";
+  }
+
   const now = Date.now();
   const cached = planCache.get(userId);
   if (cached && cached.expiresAt > now) {
@@ -65,6 +70,11 @@ export async function getUserPlan(userId: string): Promise<"free" | "paid"> {
 }
 
 export async function checkAndIncrementFreeUsage(userId: string) {
+  // Local Development Override: Unlimited generations in dev environment
+  if (process.env.NODE_ENV === "development") {
+    return { allowed: true };
+  }
+
   const { data: profile } = await supabaseAdmin
     .from("profiles")
     .select("*")

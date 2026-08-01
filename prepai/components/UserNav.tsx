@@ -30,7 +30,7 @@ export function UserNav({ user, profile, onOpenPaywall }: UserNavProps) {
     return <LoginButton />;
   }
 
-  const isPaid = profile?.plan === "paid";
+  const isPaid = profile?.plan === "paid" || process.env.NODE_ENV === "development";
 
   return (
     <div className="flex items-center space-x-3">
@@ -54,6 +54,11 @@ export function UserNav({ user, profile, onOpenPaywall }: UserNavProps) {
       <div className="hidden sm:flex items-center space-x-1.5 bg-paper px-2.5 py-1 rounded-md border border-slate/10 text-xs font-mono text-slate">
         <span className="w-2 h-2 rounded-full bg-mint" />
         <span className="max-w-[120px] truncate">{user.email}</span>
+        {process.env.NODE_ENV === "development" && (
+          <span className="font-mono text-[9px] bg-focus text-white px-1.5 py-0.2 rounded uppercase">
+            PRO DEV
+          </span>
+        )}
       </div>
 
       {/* Sign Out Button */}
