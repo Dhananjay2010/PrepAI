@@ -5,7 +5,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 import { QuestionCard } from "@/components/QuestionCard";
-import { TopicData } from "@/lib/gemini";
+import { TopicData, getOrGenerateTopics } from "@/lib/gemini";
 import { SkeletonSessionDetail } from "@/components/Skeletons";
 
 export default function TopicDetailPage({
@@ -40,8 +40,8 @@ export default function TopicDetailPage({
           if (error) throw error;
           setSession(data);
 
-          // Find topic matching slug
-          const topicsList: TopicData[] = data.topics || [];
+          // Find topic matching slug using robust getOrGenerateTopics
+          const topicsList: TopicData[] = getOrGenerateTopics(data);
           const found = topicsList.find(
             (t) => t.id === topicSlug || t.title.toLowerCase().replace(/[^a-z0-9]/g, "-") === topicSlug
           );
@@ -49,7 +49,6 @@ export default function TopicDetailPage({
           if (found) {
             setTopic(found);
           } else {
-            // Fallback topic object if slug was generated from title
             const fallbackTitle = topicSlug.replace(/-/g, " ");
             setTopic({
               id: topicSlug,

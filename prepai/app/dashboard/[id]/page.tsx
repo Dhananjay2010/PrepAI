@@ -10,6 +10,7 @@ import { PaywallModal } from "@/components/PaywallModal";
 import { SkeletonSessionDetail } from "@/components/Skeletons";
 import { PrintableCheatSheet } from "@/components/PrintableCheatSheet";
 import { TopicBreakdownBar } from "@/components/TopicBreakdownBar";
+import { getOrGenerateTopics } from "@/lib/gemini";
 
 export default function SessionDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -53,7 +54,25 @@ export default function SessionDetailPage({ params }: { params: Promise<{ id: st
             .single();
 
           if (error) throw error;
-          setSession(data);
+
+          // Self-healing: Ensure session has topics extracted
+          const resolvedTopics = getOrGenerateTopics(data);
+          const updatedSession = { ...data, topics: resolvedTopics };
+          setSession(updatedSession);
+
+          // Asynchronously persist derived topics if missing in database
+          if (!data.topics || data.topics.length === 0) {
+            (async () => {
+              try {
+                await supabase
+                  .from("sessions")
+                  .update({ topics: resolvedTopics })
+                  .eq("id", sessionId);
+              } catch (err) {
+                console.error("Async topics save warning:", err);
+              }
+            })();
+          }
 
           // Fetch bookmarks
           const res = await fetch(`/api/user/bookmarks?userId=${user.id}`);
@@ -163,6 +182,8 @@ export default function SessionDetailPage({ params }: { params: Promise<{ id: st
     );
   }
 
+  const topicsList = session.topics || [];
+
   return (
     <main className="min-h-screen bg-paper text-ink py-12 px-4">
       <motion.div
@@ -226,9 +247,9 @@ export default function SessionDetailPage({ params }: { params: Promise<{ id: st
         </div>
 
         {/* Topic Breakdown & Self-Assessment Bar */}
-        {session.topics && session.topics.length > 0 && (
+        {topicsList.length > 0 && (
           <TopicBreakdownBar
-            topics={session.topics}
+            topics={topicsList}
             questions={session.questions || []}
             sessionId={session.id}
             assessments={session.topic_assessments || {}}

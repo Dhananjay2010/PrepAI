@@ -20,6 +20,56 @@ export interface TopicData {
   }[];
 }
 
+export function getOrGenerateTopics(sessionData: any): TopicData[] {
+  if (Array.isArray(sessionData?.topics) && sessionData.topics.length > 0) {
+    return sessionData.topics;
+  }
+
+  // Generate fallback topics from key_skills
+  const skills: string[] = sessionData?.key_skills || [];
+  if (skills.length > 0) {
+    return skills.slice(0, 5).map((skill, idx) => {
+      const slug = skill.toLowerCase().replace(/[^a-z0-9]/g, "-");
+      return {
+        id: slug || `topic-${idx + 1}`,
+        title: skill,
+        description: `Core competency topic for ${sessionData.role_summary || "this role"}.`,
+        importance: idx === 0 ? "Critical" : "High",
+        core_concepts: [`${skill} Architecture`, "Performance Tuning & Trade-offs", "Production Resilience"],
+        learning_resources: [
+          {
+            title: `${skill} Documentation & Technical Guides`,
+            url: `https://www.google.com/search?q=${encodeURIComponent(skill + " documentation guide")}`
+          }
+        ]
+      };
+    });
+  }
+
+  // Fallback from question categories
+  const questions = Array.isArray(sessionData?.questions) ? sessionData.questions : [];
+  const categories = Array.from(new Set(questions.map((q: any) => q.category || "Technical")));
+  
+  return (categories.length > 0 ? categories : ["System Design", "Core Technical", "Problem Solving"])
+    .slice(0, 5)
+    .map((cat: any, idx: number) => {
+      const slug = String(cat).toLowerCase().replace(/[^a-z0-9]/g, "-");
+      return {
+        id: slug || `cat-${idx + 1}`,
+        title: `${cat} Architecture & Practices`,
+        description: `Target competency area covering ${cat} interview questions.`,
+        importance: idx === 0 ? "Critical" : "High",
+        core_concepts: [`${cat} Fundamentals`, "Trade-off Evaluation", "Failure Modes"],
+        learning_resources: [
+          {
+            title: `${cat} Technical Documentation`,
+            url: `https://www.google.com/search?q=${encodeURIComponent(cat + " technical documentation guide")}`
+          }
+        ]
+      };
+    });
+}
+
 export async function generateQuestions(jobDescription: string, questionCount: number) {
   const ai = getAIClient();
 
@@ -148,23 +198,7 @@ JSON format:
 
   // Fallback: If topics are missing, generate topic objects from key_skills or question categories
   if (!parsed.topics || !Array.isArray(parsed.topics) || parsed.topics.length === 0) {
-    const topicsList: TopicData[] = (parsed.key_skills || ["Core Engineering", "System Design"]).slice(0, 5).map((skill: string, idx: number) => {
-      const slug = skill.toLowerCase().replace(/[^a-z0-9]/g, "-");
-      return {
-        id: slug || `topic-${idx + 1}`,
-        title: skill,
-        description: `Core competency topic for ${parsed.role_summary || "this role"}.`,
-        importance: idx === 0 ? "Critical" : "High",
-        core_concepts: [`${skill} Architecture`, "Performance Tuning", "Failure Modes"],
-        learning_resources: [
-          {
-            title: `${skill} Documentation & Guides`,
-            url: `https://www.google.com/search?q=${encodeURIComponent(skill + " documentation guide")}`
-          }
-        ]
-      };
-    });
-    parsed.topics = topicsList;
+    parsed.topics = getOrGenerateTopics(parsed);
   }
 
   return parsed;
