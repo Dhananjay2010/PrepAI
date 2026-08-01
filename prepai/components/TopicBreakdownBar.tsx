@@ -22,25 +22,54 @@ export function TopicBreakdownBar({
   const [localAssessments, setLocalAssessments] = useState<Record<string, "strong" | "weak">>(assessments);
   const [selectedTopic, setSelectedTopic] = useState<TopicData | null>(null);
 
+  // Restore persistent topic assessments from props AND localStorage on mount / reload
   useEffect(() => {
-    if (assessments) {
-      setLocalAssessments(assessments);
+    let merged = { ...assessments };
+    if (typeof window !== "undefined") {
+      const storageKey = sessionId ? `prepai_topics_${sessionId}` : "prepai_topics_temp";
+      try {
+        const saved = localStorage.getItem(storageKey);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          merged = { ...merged, ...parsed };
+        }
+      } catch (e) {
+        console.error("LocalStorage read warning:", e);
+      }
     }
-  }, [assessments]);
+    setLocalAssessments(merged);
+  }, [sessionId, assessments]);
 
   if (!topics || topics.length === 0) return null;
 
-  const handleToggle = async (topicId: string, status: "strong" | "weak") => {
+  const handleToggle = async (topicId: string, targetStatus: "strong" | "weak") => {
     const current = localAssessments[topicId];
-    const newStatus = current === status ? (status === "strong" ? "weak" : "strong") : status;
-    const updated = { ...localAssessments, [topicId]: newStatus };
-    setLocalAssessments(updated);
+    const newStatus = current === targetStatus ? null : targetStatus;
 
-    if (onAssessmentToggle) {
-      onAssessmentToggle(topicId, newStatus);
+    const updated = { ...localAssessments };
+    if (newStatus === null) {
+      delete updated[topicId];
+    } else {
+      updated[topicId] = newStatus;
     }
 
-    // Persist to database if sessionId is present so it survives hard refreshes
+    setLocalAssessments(updated);
+
+    // Save to LocalStorage as instant persistent fallback
+    if (typeof window !== "undefined") {
+      const storageKey = sessionId ? `prepai_topics_${sessionId}` : "prepai_topics_temp";
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(updated));
+      } catch (e) {
+        console.error("LocalStorage write warning:", e);
+      }
+    }
+
+    if (onAssessmentToggle) {
+      onAssessmentToggle(topicId, newStatus || ("" as any));
+    }
+
+    // Persist to Supabase Database
     if (sessionId) {
       try {
         await fetch("/api/user/topic-assessment", {
@@ -125,7 +154,7 @@ export function TopicBreakdownBar({
                     onClick={() => handleToggle(topic.id, "strong")}
                     className={`px-2 py-1 rounded transition-colors text-[11px] font-semibold ${
                       status === "strong"
-                        ? "bg-mint text-white"
+                        ? "bg-mint text-white shadow-xs"
                         : "bg-paper-raised text-slate hover:text-ink border border-slate/10"
                     }`}
                   >
@@ -135,7 +164,7 @@ export function TopicBreakdownBar({
                     onClick={() => handleToggle(topic.id, "weak")}
                     className={`px-2 py-1 rounded transition-colors text-[11px] font-semibold ${
                       status === "weak"
-                        ? "bg-coral text-white"
+                        ? "bg-coral text-white shadow-xs"
                         : "bg-paper-raised text-slate hover:text-ink border border-slate/10"
                     }`}
                   >

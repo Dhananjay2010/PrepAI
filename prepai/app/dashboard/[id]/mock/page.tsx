@@ -89,6 +89,7 @@ export default function MockInterviewRoomPage({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          userId: user?.id || session?.user_id,
           roleSummary: session.role_summary || "Software Engineering Role",
           currentQuestion: currentQuestion.question,
           candidateAnswer: candidateAnswer.trim(),
