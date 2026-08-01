@@ -43,6 +43,8 @@ export default function Home() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [moreError, setMoreError] = useState<string | null>(null);
 
+  const isPaid = profile?.plan === "paid" || process.env.NODE_ENV === "development";
+
   useEffect(() => {
     async function loadUser() {
       try {
@@ -93,7 +95,7 @@ export default function Home() {
 
       const data = await res.json();
 
-      if (res.status === 429) {
+      if (res.status === 429 && !isPaid) {
         setPaywallOpen(true);
         setError(data.error || "Daily free limit reached.");
         return;
@@ -116,7 +118,7 @@ export default function Home() {
   }
 
   function handleStartMockMode() {
-    if (profile?.plan !== "paid") {
+    if (!isPaid) {
       setPaywallOpen(true);
     } else {
       setMockMode(true);
@@ -124,7 +126,7 @@ export default function Home() {
   }
 
   async function handleGetMoreQuestions() {
-    if (profile?.plan !== "paid") {
+    if (!isPaid) {
       setPaywallOpen(true);
       return;
     }
@@ -146,7 +148,7 @@ export default function Home() {
       const data = await res.json();
 
       if (!res.ok) {
-        if (res.status === 403) {
+        if (res.status === 403 && !isPaid) {
           setPaywallOpen(true);
           return;
         }
@@ -411,7 +413,7 @@ export default function Home() {
                   <h3 className="font-display text-xl font-bold text-ink">
                     Generated Interview Questions ({generationResult.questions?.length || 0})
                   </h3>
-                  {profile?.plan !== "paid" && (
+                  {!isPaid && (
                     <span className="font-mono text-xs text-slate">
                       Showing Free Questions (Upgrade Pro for Unlimited Expansion)
                     </span>
@@ -448,7 +450,7 @@ export default function Home() {
                         ? "Generating 5 More Questions..."
                         : "Get More Questions from Gemini"}
                     </span>
-                    {profile?.plan !== "paid" && (
+                    {!isPaid && (
                       <span className="font-mono text-[10px] bg-highlight text-ink font-bold px-1.5 py-0.5 rounded ml-1 uppercase">
                         PRO
                       </span>

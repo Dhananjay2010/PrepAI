@@ -12,7 +12,8 @@ export function PaywallModal({ isOpen, onClose, userId }: PaywallModalProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  if (!isOpen) return null;
+  // Suppress paywall modal completely in local development environment!
+  if (!isOpen || process.env.NODE_ENV === "development") return null;
 
   async function handleUpgrade() {
     if (!userId) {
