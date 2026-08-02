@@ -14,6 +14,9 @@ import { CountdownCurriculumWidget } from "@/components/CountdownCurriculumWidge
 import { DailyHeroDockWidget } from "@/components/DailyHeroDockWidget";
 import { NextBestActionWidget } from "@/components/NextBestActionWidget";
 import { FlashcardReviewModal, FlashcardItem } from "@/components/FlashcardReviewModal";
+import { EmergencySprintModal } from "@/components/EmergencySprintModal";
+import { CompetencyRadarWidget } from "@/components/CompetencyRadarWidget";
+import { FeedbackDiffCard } from "@/components/FeedbackDiffCard";
 
 export default function DashboardPage() {
   const [user, setUser] = useState<any>(null);
@@ -23,6 +26,9 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [paywallOpen, setPaywallOpen] = useState(false);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
+
+  // Emergency Sprint Launch Modal state
+  const [showSprintModal, setShowSprintModal] = useState(false);
 
   // Bookmarks Filter state
   const [activeBookmarkRound, setActiveBookmarkRound] = useState<string>("all");
@@ -35,6 +41,7 @@ export default function DashboardPage() {
   // SRS Flashcard Review state
   const [dueFlashcards, setDueFlashcards] = useState<FlashcardItem[]>([]);
   const [showFlashcardsModal, setShowFlashcardsModal] = useState(false);
+  const [isMorningWarmup, setIsMorningWarmup] = useState(false);
 
   useEffect(() => {
     async function loadUserData() {
@@ -108,7 +115,13 @@ export default function DashboardPage() {
           }
           if (fcRes.ok) {
             const fcData = await fcRes.json();
-            setDueFlashcards(fcData.dueCards || []);
+            const cards = fcData.dueCards || [];
+            setDueFlashcards(cards);
+            if (cards.length > 0) {
+              // Trigger morning warmup re-entry modal automatically if cards exist
+              setIsMorningWarmup(true);
+              setShowFlashcardsModal(true);
+            }
           }
         }
       } catch (err) {
@@ -189,6 +202,15 @@ export default function DashboardPage() {
     }
   }
 
+  const handleLaunchSprintPreset = (preset: any) => {
+    setShowSprintModal(false);
+    if (sessions[0]?.id) {
+      window.location.href = `/dashboard/${sessions[0].id}`;
+    } else {
+      window.location.href = "/";
+    }
+  };
+
   if (loading) {
     return (
       <main className="min-h-screen bg-paper text-ink">
@@ -200,20 +222,11 @@ export default function DashboardPage() {
   const isPaid = profile?.plan === "paid" || process.env.NODE_ENV === "development";
   const displayedSessions = isPaid ? sessions : sessions.slice(0, 1);
 
-  // 1. Calculate Readiness Score across sessions
+  // Calculate Readiness Score across sessions
   const allCategories = sessions.flatMap((s) =>
     Array.isArray(s.questions) ? s.questions.map((q: any) => q.category) : []
   );
   const readinessScore = computeReadinessScore(allCategories, []);
-
-  // 2. Countdown Calculation
-  let daysLeft: number | null = null;
-  if (interviewDate) {
-    const target = new Date(interviewDate);
-    const now = new Date();
-    const diffTime = target.getTime() - now.getTime();
-    daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  }
 
   return (
     <main className="min-h-screen bg-paper text-ink py-12 px-4">
@@ -228,7 +241,7 @@ export default function DashboardPage() {
           <div>
             <div className="flex items-center space-x-3">
               <h1 className="font-display text-3xl font-bold text-ink">
-                Your Prep Dashboard
+                Emergency Prep Cockpit
               </h1>
               {profile?.current_streak > 0 && (
                 <div
@@ -241,17 +254,17 @@ export default function DashboardPage() {
               )}
             </div>
             <p className="text-slate text-sm mt-1 font-body">
-              Track readiness, review saved questions, and manage target dates.
+              Microsoft SDE4 Targeted Sprint Platform • 3-Day Countdown Window.
             </p>
           </div>
 
           <div className="flex items-center space-x-3">
-            <Link
-              href="/"
-              className="inline-flex items-center justify-center bg-focus text-white font-medium px-4 py-2.5 rounded-md hover:opacity-90 transition-opacity text-sm shadow-sm"
+            <button
+              onClick={() => setShowSprintModal(true)}
+              className="inline-flex items-center justify-center bg-focus text-white font-mono font-bold px-4 py-2.5 rounded-xl hover:bg-focus/90 transition-all text-sm shadow-md"
             >
-              + New Prep Session
-            </Link>
+              ⚡ Launch Sprint (Space)
+            </button>
             <UserNav
               user={user}
               profile={profile}
@@ -269,7 +282,7 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Session 2 Habit Loop: Returning User Daily Hero Dock */}
+        {/* Emergency Hero Dock Widget */}
         <DailyHeroDockWidget
           streakDays={profile?.current_streak || 1}
           interviewDate={interviewDate}
@@ -277,7 +290,20 @@ export default function DashboardPage() {
           unmasteredTopicsCount={allCategories.length > 0 ? 3 : 0}
           recentSessionId={sessions[0]?.id}
           recentRoleSummary={sessions[0]?.role_summary}
-          onStartFlashcardReview={() => setShowFlashcardsModal(true)}
+          targetCompany="Microsoft"
+          targetRole="SDE4"
+          readinessScore={readinessScore}
+          onStartEmergencySprint={() => setShowSprintModal(true)}
+          onStartFlashcardReview={() => {
+            setIsMorningWarmup(false);
+            setShowFlashcardsModal(true);
+          }}
+          onLaunchTopicDrill={(topic) => setShowSprintModal(true)}
+        />
+
+        {/* Competency Radar Widget: Trajectory & Sparklines */}
+        <CompetencyRadarWidget
+          onLaunchDrill={(topic) => setShowSprintModal(true)}
         />
 
         {/* Cognitive Load Reduction: Next Best Action Engine */}
@@ -285,16 +311,25 @@ export default function DashboardPage() {
           interviewDate={interviewDate}
           roleSummary={sessions[0]?.role_summary}
           questions={sessions.flatMap((s) => s.questions || [])}
-          onSelectAction={(actionType) => {
-            if (sessions[0]?.id) {
-              window.location.href = `/dashboard/${sessions[0].id}`;
-            } else {
-              window.location.href = "/";
-            }
-          }}
+          onSelectAction={(actionType) => setShowSprintModal(true)}
         />
 
-        {/* Brick 7: AI Readiness Gauge & Target Interview Countdown */}
+        {/* SDE4 Evaluation Benchmark Sample Feedback Card */}
+        {sessions.length > 0 && (
+          <div className="space-y-3">
+            <h2 className="font-display text-xl font-bold text-ink">
+              Latest Question Benchmark Feedback
+            </h2>
+            <FeedbackDiffCard
+              verdict="Strong Hire"
+              targetRoleLevel="Microsoft SDE4"
+              overallScore={84}
+              onNextQuestion={() => setShowSprintModal(true)}
+            />
+          </div>
+        )}
+
+        {/* AI Readiness Gauge & Target Countdown */}
         <ReadinessGauge
           score={readinessScore}
           interviewDate={interviewDate}
@@ -303,7 +338,7 @@ export default function DashboardPage() {
           onInterviewDateUpdated={(newDate) => setInterviewDate(newDate)}
         />
 
-        {/* Brick 7: 7-Day Blitz Daily Curriculum Checklist */}
+        {/* 7-Day Blitz Daily Curriculum Checklist */}
         <CountdownCurriculumWidget />
 
         {/* Bookmarked Questions Tab Section */}
@@ -453,20 +488,6 @@ export default function DashboardPage() {
                   </div>
                 </Link>
               ))}
-
-              {!isPaid && sessions.length > 1 && (
-                <div className="bg-paper-raised/80 rounded-xl p-5 border border-dashed border-focus/30 text-center space-y-2">
-                  <p className="text-xs font-mono text-slate">
-                    + {sessions.length - 1} older session{sessions.length - 1 === 1 ? "" : "s"} hidden on Free plan.
-                  </p>
-                  <button
-                    onClick={() => setPaywallOpen(true)}
-                    className="font-mono text-xs text-focus font-semibold hover:underline"
-                  >
-                    Upgrade to Pro to view full history &rarr;
-                  </button>
-                </div>
-              )}
             </div>
           )}
         </div>
@@ -523,11 +544,22 @@ export default function DashboardPage() {
         </div>
       </motion.div>
 
+      {/* Emergency Sprint Launch Preset Modal */}
+      <EmergencySprintModal
+        isOpen={showSprintModal}
+        onClose={() => setShowSprintModal(false)}
+        onLaunch={handleLaunchSprintPreset}
+        targetCompany="Microsoft"
+        targetRole="SDE4"
+      />
+
+      {/* Flashcard Review SRS Modal */}
       <FlashcardReviewModal
         isOpen={showFlashcardsModal}
         onClose={() => setShowFlashcardsModal(false)}
         cards={dueFlashcards}
         onReviewComplete={() => setDueFlashcards([])}
+        isMorningWarmup={isMorningWarmup}
       />
 
       <PaywallModal

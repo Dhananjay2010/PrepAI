@@ -14,6 +14,7 @@ interface FlashcardReviewModalProps {
   onClose: () => void;
   cards: FlashcardItem[];
   onReviewComplete?: () => void;
+  isMorningWarmup?: boolean;
 }
 
 export function FlashcardReviewModal({
@@ -21,6 +22,7 @@ export function FlashcardReviewModal({
   onClose,
   cards = [],
   onReviewComplete,
+  isMorningWarmup = false,
 }: FlashcardReviewModalProps) {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [flipped, setFlipped] = useState(false);
@@ -64,8 +66,14 @@ export function FlashcardReviewModal({
         {/* Header Bar */}
         <div className="flex items-center justify-between border-b border-slate/10 pb-3">
           <div className="flex items-center space-x-2">
-            <span className="bg-focus/15 text-focus font-bold px-2 py-0.5 rounded text-[10px] uppercase">
-              ⚡ SRS LEITNER DECK
+            <span
+              className={`font-bold px-2 py-0.5 rounded text-[10px] uppercase ${
+                isMorningWarmup
+                  ? "bg-mint/20 text-mint border border-mint/30"
+                  : "bg-focus/15 text-focus"
+              }`}
+            >
+              {isMorningWarmup ? "☀️ 60s MORNING WARMUP" : "⚡ SRS LEITNER DECK"}
             </span>
             <span className="text-xs font-bold text-ink">
               Card {currentIdx + 1} of {cards.length}
