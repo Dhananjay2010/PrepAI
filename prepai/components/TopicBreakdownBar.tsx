@@ -93,14 +93,14 @@ export function TopicBreakdownBar({
     <div className="bg-paper-raised rounded-2xl p-6 border border-slate/10 shadow-[0_4px_24px_-8px_rgba(28,34,48,0.12)] space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate/10 pb-3">
         <div>
-          <span className="font-mono text-[11px] font-semibold uppercase text-focus bg-focus/10 px-2 py-0.5 rounded">
+          <span className="font-mono text-xs font-bold uppercase text-focus bg-focus/10 border border-focus/30 px-2.5 py-0.5 rounded">
             Target Competency Breakdown
           </span>
           <h3 className="font-display text-lg font-bold text-ink mt-1">
             Required Topics & Self-Assessment
           </h3>
         </div>
-        <p className="text-xs font-mono text-slate">
+        <p className="text-xs font-mono text-slate font-medium">
           Tag your weak topics to prioritize your study focus
         </p>
       </div>
@@ -119,24 +119,24 @@ export function TopicBreakdownBar({
               key={topic.id || index}
               className={`p-4 rounded-xl border transition-all flex flex-col justify-between space-y-3 ${
                 status === "weak"
-                  ? "bg-coral/5 border-coral/30"
+                  ? "bg-coral/5 border-coral/40"
                   : status === "strong"
-                  ? "bg-mint/5 border-mint/30"
-                  : "bg-paper border-slate/10 hover:border-slate/30"
+                  ? "bg-mint/5 border-mint/40"
+                  : "bg-paper border-slate/20 hover:border-slate/40"
               }`}
             >
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <span
-                    className={`font-mono text-[10px] font-bold px-2 py-0.5 rounded uppercase ${
+                    className={`font-mono text-xs font-bold px-2.5 py-0.5 rounded uppercase border ${
                       topic.importance?.toLowerCase() === "critical"
-                        ? "bg-coral/15 text-coral"
-                        : "bg-focus/10 text-focus"
+                        ? "bg-coral/15 text-coral border-coral/30"
+                        : "bg-focus/10 text-focus border-focus/30"
                     }`}
                   >
                     {topic.importance || "Core Topic"}
                   </span>
-                  <span className="font-mono text-[11px] text-slate">
+                  <span className="font-mono text-xs font-semibold text-slate">
                     {qCount > 0 ? `${qCount} Questions` : "Study Module"}
                   </span>
                 </div>

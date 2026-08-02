@@ -63,6 +63,7 @@ export function QuestionCard({
   onBookmarkToggle,
 }: QuestionCardProps) {
   const [expanded, setExpanded] = useState(false);
+  const [cramMode, setCramMode] = useState(false);
   const [viewTab, setViewTab] = useState<"outline" | "diagram" | "sandbox" | "tradeoffs">("outline");
   const [bookmarked, setBookmarked] = useState(isBookmarked);
   const [bookmarking, setBookmarking] = useState(false);
@@ -273,16 +274,16 @@ export function QuestionCard({
         return (
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="font-mono text-xs text-slate font-semibold">
+              <span className="font-mono text-xs text-slate font-bold">
                 Q{question.num}
               </span>
-              <span className="font-mono text-[11px] font-bold text-focus bg-focus/10 border border-focus/20 px-2.5 py-0.5 rounded uppercase">
+              <span className="font-mono text-xs font-bold text-focus bg-focus/10 border border-focus/30 px-2.5 py-0.5 rounded uppercase">
                 {roundInfo.round_label}
               </span>
-              <span className="font-mono text-xs font-medium text-ink bg-paper px-2 py-0.5 rounded uppercase tracking-wide border border-slate/10">
+              <span className="font-mono text-xs font-semibold text-ink bg-paper px-2.5 py-0.5 rounded uppercase tracking-wide border border-slate/20">
                 {question.category}
               </span>
-              <div className="flex items-center space-x-1.5 font-mono text-xs text-slate">
+              <div className="flex items-center space-x-1.5 font-mono text-xs font-semibold text-slate bg-paper px-2 py-0.5 rounded border border-slate/20">
                 <span className={`w-2 h-2 rounded-full ${difficultyDotColor}`} />
                 <span>{question.difficulty}</span>
               </div>
@@ -310,15 +311,29 @@ export function QuestionCard({
         {question.question}
       </h3>
 
-      {/* Action Buttons Row */}
+      {/* Action Buttons Row with Cram Mode Toggle */}
       <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate/10">
-        <button
-          onClick={() => setExpanded(!expanded)}
-          className="font-mono text-xs text-focus hover:underline flex items-center space-x-1"
-        >
-          <span>{expanded ? "Hide Details" : "View Details & Outline"}</span>
-          <span>{expanded ? "↑" : "↓"}</span>
-        </button>
+        <div className="flex items-center space-x-3">
+          <button
+            onClick={() => setExpanded(!expanded)}
+            className="font-mono text-xs text-focus hover:underline font-semibold flex items-center space-x-1"
+          >
+            <span>{expanded ? "Hide Full Workspace" : "View Full Workspace"}</span>
+            <span>{expanded ? "↑" : "↓"}</span>
+          </button>
+
+          <button
+            onClick={() => setCramMode(!cramMode)}
+            className={`font-mono text-xs font-bold px-2.5 py-1 rounded-md border transition-all flex items-center space-x-1 ${
+              cramMode
+                ? "bg-focus text-white border-focus shadow-xs"
+                : "bg-paper text-slate hover:text-ink border-slate/20"
+            }`}
+          >
+            <span>⚡</span>
+            <span>{cramMode ? "Cram Mode Active" : "Cram Review"}</span>
+          </button>
+        </div>
 
         <div className="flex flex-wrap items-center gap-2">
           <button
@@ -360,6 +375,49 @@ export function QuestionCard({
       {errorMsg && (
         <div className="p-3 bg-coral/10 border border-coral/20 text-coral font-mono text-xs rounded-md">
           {errorMsg}
+        </div>
+      )}
+
+      {/* ⚡ Cram Mode Streamlined Spoken Review Box */}
+      {cramMode && (
+        <div className="bg-focus/5 border-2 border-focus/30 rounded-xl p-4 space-y-3 font-body text-xs text-ink animate-in fade-in duration-150">
+          <div className="flex items-center justify-between border-b border-focus/20 pb-2">
+            <span className="font-mono text-xs font-bold text-focus uppercase tracking-wider flex items-center space-x-1">
+              <span>⚡</span>
+              <span>Cram Mode: Spoken Answer Outline</span>
+            </span>
+            <button
+              onClick={() => setCramMode(false)}
+              className="font-mono text-[11px] text-slate hover:text-ink"
+            >
+              ✕ Exit Cram
+            </button>
+          </div>
+
+          <div>
+            <span className="font-mono text-xs font-bold uppercase text-slate block mb-1">
+              What They Test
+            </span>
+            <p className="text-slate leading-relaxed">{question.what_they_test}</p>
+          </div>
+
+          <div>
+            <span className="font-mono text-xs font-bold uppercase text-mint block mb-1">
+              Strong Answer Outline / Key Talking Points
+            </span>
+            <p className="text-ink font-medium leading-relaxed bg-paper p-3 rounded-lg border border-slate/10">
+              {question.strong_answer_outline}
+            </p>
+          </div>
+
+          {question.red_flags && (
+            <div>
+              <span className="font-mono text-xs font-bold uppercase text-coral block mb-1">
+                Red Flags To Avoid
+              </span>
+              <p className="text-coral font-medium">{question.red_flags}</p>
+            </div>
+          )}
         </div>
       )}
 
